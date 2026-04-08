@@ -23,8 +23,8 @@
  *          to POSIX platforms.
  */
 
-#ifndef CHIP_OS_TYPES_H
-#define CHIP_OS_TYPES_H
+#ifndef CHIP_OS_POSIX_TYPES_H
+#define CHIP_OS_POSIX_TYPES_H
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -72,4 +72,4 @@ struct chip_os_sem
 #endif
 };
 
-#endif // CHIP_OS_TYPES_H
+#endif // CHIP_OS_POSIX_TYPES_H

@@ -20,16 +20,33 @@
  * under the License.
  */
 
-#ifndef CHIP_OSAL_H
-#define CHIP_OSAL_H
+#ifndef CHIP_OS_TIME_H
+#define CHIP_OS_TIME_H
 
 #include "chip/os_types.h"
-#include "chip/os_mutex.h"
-#include "chip/os_sem.h"
-#include "chip/os_queue.h"
-#include "chip/os_timer.h"
-#include "chip/os_time.h"
-#include "chip/os_task.h"
-#include "chip/os_sched.h"
 
-#endif /* CHIP_OSAL_H */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Get system uptime.
+ *
+ * This routine returns the elapsed time since the system booted,
+ * in milliseconds.
+ *
+ * @return Current uptime.
+ */
+chip_os_time_t chip_os_time_get(void);
+
+chip_os_time_t chip_os_time_get_ms(void);
+
+chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms);
+
+chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CHIP_OS_TIME_H */
