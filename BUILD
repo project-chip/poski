@@ -16,6 +16,22 @@ cc_library(
 )
 
 cc_library(
+    name = "osal_zephyr",
+    srcs = glob([
+        "targets/zephyr/*.c",
+    ]),
+    hdrs = glob([
+        "include/**/*.h",
+        "targets/zephyr/**/*.h",
+    ]),
+    includes = [
+        "include",
+        "targets/zephyr",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "test_util",
     hdrs = ["tests/test_util.h"],
     deps = [":osal"],

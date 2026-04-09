@@ -27,28 +27,30 @@ abstractions:
       python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
       make gcc gcc-multilib g++-multilib
 
-    pip3 install --user cmake
-
-    wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.10.3/zephyr-sdk-0.10.3-setup.runZephyr
-    chmod +x zephyr-sdk-0.10.3-setup.run
-    ./zephyr-sdk-0.10.3-setup.run -- -d ~/zephyr-sdk-0.10.3
+    python3 -m venv ~/zephyr-venv
+    source ~/zephyr-venv/bin/activate
+    pip install west
     ```
 
-2. Set these environment variables
-
+2. Get the Zephyr source code
     ```bash
-    echo "export ZEPHYR_BASE=$HOME/zephyrproject/zephyr" >> $HOME/.zephyrrc
-    echo "export ZEPHYR_TOOLCHAIN_VARIANT=zephyr" >> $HOME/.zephyrrc
-    echo "export ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-0.10.3" >> $HOME/.zephyrrc
-    ```
-
-3. Get the Zephyr source code
-    ```bash
-    pip3 install --user west
-    west init zephyrproject
-    cd zephyrproject
+    west init ~/zephyrproject
+    cd ~/zephyrproject
     west update
-    pip3 install --user -r zephyr/scripts/requirements.txt
+    pip install -r zephyr/scripts/requirements.txt
+    ```
+
+3. Install Zephyr SDK
+    ```bash
+    wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.run
+    chmod +x zephyr-sdk-0.16.5_linux-x86_64.run
+    ./zephyr-sdk-0.16.5_linux-x86_64.run -- -d ~/zephyr-sdk-0.16.5
+    ```
+
+4. Set these environment variables
+    ```bash
+    echo "export ZEPHYR_BASE=$HOME/zephyrproject/zephyr" >> $HOME/.bashrc
+    echo "export ZEPHYR_SDK_INSTALL_DIR=$HOME/zephyr-sdk-0.16.5" >> $HOME/.bashrc
     ```
 
 ---
