@@ -23,8 +23,8 @@
  *          to POSIX platforms.
  */
 
-#ifndef CHIP_OS_TIME_H
-#define CHIP_OS_TIME_H
+#ifndef CHIP_OS_POSIX_TIME_H
+#define CHIP_OS_POSIX_TIME_H
 
 #include <time.h>
 
@@ -65,4 +65,4 @@ struct chip_os_timer
     void * tm_arg;
 };
 
-#endif // CHIP_OS_TIME_H
+#endif // CHIP_OS_POSIX_TIME_H

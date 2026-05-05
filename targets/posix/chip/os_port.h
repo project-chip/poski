@@ -17,8 +17,8 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_OS_PORT_H
-#define CHIP_OS_PORT_H
+#ifndef CHIP_OS_POSIX_PORT_H
+#define CHIP_OS_POSIX_PORT_H
 
 #include <assert.h>
 #include <stdint.h>
@@ -27,4 +27,4 @@
 #include "os_time.h"
 #include "os_types.h"
 
-#endif /* CHIP_OS_PORT_H */
+#endif /* CHIP_OS_POSIX_PORT_H */
