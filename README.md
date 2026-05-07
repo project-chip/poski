@@ -264,7 +264,7 @@ $ bazel build //:all
 #### Make
 
 ```
-$ make -C tests
+$ make test
 ```
 
 #### Bazel
