@@ -66,9 +66,9 @@ endif # PLATFORM == posix
 CROSS_COMPILE ?=
 
 ifeq ($(UNAME_S),Darwin)
-CC  = ccache $(CROSS_COMPILE)llvm-gcc
-CPP = ccache $(CROSS_COMPILE)llvm-g++
-LD  = $(CROSS_COMPILE)llvm-g++
+CC  = ccache $(CROSS_COMPILE)clang
+CPP = ccache $(CROSS_COMPILE)clang++
+LD  = $(CROSS_COMPILE)clang++
 AR  = $(CROSS_COMPILE)ar
 else
 CC  = ccache $(CROSS_COMPILE)gcc
