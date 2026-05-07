@@ -222,3 +222,54 @@ semaphore implementations.
 │   ├── os_utils.h         - Shared header for the posix port, most notably nlassert code utility macros.
 │   └── RingPthread.h      - Thread-safe version of Ring using posix mutex and cond
 ```
+
+
+## Quick Start
+
+### Prerequisites
+
+- Make
+- Bazel
+- GTest
+
+
+#### Linux
+
+```
+sudo apt install make ccache bazel gtest
+```
+
+#### Mac
+
+```
+brew install make ccache bazel gtest
+```
+
+### Build
+
+#### Make
+
+```
+$ make
+```
+
+#### Bazel
+
+```
+$ bazel build //:all
+```
+
+### Test
+
+#### Make
+
+```
+$ make -C tests
+```
+
+#### Bazel
+
+```
+$ bazel test //:all
+```
+
