@@ -6,4 +6,4 @@ test:
 	make -C tests test
 
 clean:
-	make -f tests clean
+	make -C tests clean
