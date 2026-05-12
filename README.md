@@ -1,6 +1,14 @@
 # CHIP Operating System Abstraction Layer (OSAL)
 
 POSKI (Portable Operating System Kernel Interface) is an OSAL used within Project CHIP.
+POSKI acts as a 'POSIX for embedded,' providing a thin abstraction layer that ensures 
+seamless application portability across different RTOS targets.
+
+By bridging kernels like FreeRTOS, Zephyr, and POSIX, POSKI empowers a single codebase
+to traverse the entire lifecycle: host-based simulation, bring-up testing, and the
+final production environment.
+This ensures long-term portability, future-proofing applications against RTOS shifts 
+while ending platform fragmentation.
 
 The name POSKI is used to diambiguate the CHIP OSAL from external OSAL used by
 other projects or vendor SDKs.
