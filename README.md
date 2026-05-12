@@ -1,8 +1,8 @@
 # CHIP Operating System Abstraction Layer (OSAL)
 
-OSKI (Operating System Kernel Interface) is an OSAL used within Project CHIP.
+POSKI (Portable Operating System Kernel Interface) is an OSAL used within Project CHIP.
 
-The name OSKI is used to diambiguate the CHIP OSAL from external OSAL used by
+The name POSKI is used to diambiguate the CHIP OSAL from external OSAL used by
 other projects or vendor SDKs.
 
 ## Introduction
