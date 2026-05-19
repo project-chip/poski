@@ -243,8 +243,9 @@ semaphore implementations.
 
 #### Linux
 
-```
-sudo apt install make ccache bazel gtest
+For standard prerequisites (Make, Ccache, Bazel):
+```bash
+sudo apt install make ccache bazel
 ```
 
 #### Mac
@@ -263,8 +264,16 @@ $ make
 
 #### Bazel
 
+By default, `bazel build //:all` will attempt to build targets for all supported platforms, including Zephyr (which will fail if you don't have the Zephyr SDK installed).
+
+To build only the **POSIX/Linux** library target:
+```bash
+$ bazel build //:osal
 ```
-$ bazel build //:all
+
+To build the POSIX/Linux test binaries:
+```bash
+$ bazel build //:test //:gtest
 ```
 
 ### Test
@@ -285,17 +294,12 @@ $ make gtest
 
 To run the standard tests:
 ```bash
-$ bazel test //:all
+$ bazel test //:test
 ```
 
 To run the Google Test (gtest) suite:
 ```bash
-$ bazel test //:test_os_task_gtest //:test_os_queue_gtest //:test_os_mutex_gtest //:test_os_sem_gtest //:test_os_timer_gtest //:test_ring_gtest
+$ bazel test //:gtest
 ```
 
-> [!NOTE]
-> If you encounter linker errors related to `.sframe` relocation on Linux, you may need to pass the `--copt=-Wa,--gsframe=no` option to Bazel:
-> ```bash
-> $ bazel test //:test_os_task_gtest ... --copt=-Wa,--gsframe=no
-> ```
 
