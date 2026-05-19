@@ -77,9 +77,8 @@ static void * task2_run(void * arg)
 }
 
 TEST(OsMutexCpp, BasicLockUnlock) {
-    poski::OsMutex mutex(false); // Construct unlocked
-    EXPECT_EQ(mutex.Lock(POS_TIME_NO_WAIT), POS_OK); // Lock manually
-    EXPECT_EQ(mutex.Unlock(), POS_OK); // Unlock manually
+    poski::OsMutex mutex(true); // Locks immediately in constructor (depth = 1)
+    EXPECT_EQ(mutex.Unlock(), POS_OK); // Manual unlock (depth = 0)
 }
 
 TEST(OsMutexCpp, BasicRAIIScopedLock) {

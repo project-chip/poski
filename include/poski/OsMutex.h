@@ -21,6 +21,7 @@
 
 #include "poski/osal/os_mutex.h"
 #include <assert.h>
+#include <stdint.h>
 
 namespace poski {
 
@@ -28,21 +29,22 @@ class OsMutex {
 public:
     // Constructor initializes and optionally locks the mutex immediately (RAII)
     explicit OsMutex(bool lock_on_construction = false, pos_time_t timeout = POS_TIME_FOREVER) 
-        : locked_by_construction_(false) {
+        : lock_depth_(0) {
         pos_error_t err = pos_mutex_init(&mutex_);
         assert(err == POS_OK);
         if (lock_on_construction) {
             err = pos_mutex_lock(&mutex_, timeout);
             assert(err == POS_OK);
-            locked_by_construction_ = true;
+            lock_depth_ = 1;
         }
     }
     
-    // Destructor releases the lock automatically if it was acquired by construction
+    // Destructor recursively releases the lock automatically if held
     ~OsMutex() {
-        if (locked_by_construction_) {
+        while (lock_depth_ > 0) {
             pos_error_t err = pos_mutex_unlock(&mutex_);
             assert(err == POS_OK);
+            lock_depth_--;
         }
     }
     
@@ -51,18 +53,30 @@ public:
     OsMutex& operator=(const OsMutex&) = delete;
 
     pos_error_t Lock(pos_time_t timeout = POS_TIME_FOREVER) {
-        return pos_mutex_lock(&mutex_, timeout);
+        pos_error_t err = pos_mutex_lock(&mutex_, timeout);
+        if (err == POS_OK) {
+            lock_depth_++;
+        }
+        return err;
     }
 
     pos_error_t Unlock() {
-        return pos_mutex_unlock(&mutex_);
+        assert(lock_depth_ > 0);
+        lock_depth_--; // Decrement first while holding the lock
+        
+        pos_error_t err = pos_mutex_unlock(&mutex_);
+        if (err != POS_OK) {
+            // Revert if unlock failed
+            lock_depth_++;
+        }
+        return err;
     }
 
     struct pos_mutex* GetNative() { return &mutex_; }
 
 private:
     struct pos_mutex mutex_;
-    bool locked_by_construction_;
+    uint32_t lock_depth_;
 };
 
 } // namespace poski
