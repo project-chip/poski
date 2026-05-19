@@ -65,7 +65,7 @@ void test_sleep()
     pos_time_t start = poski::OsTime::GetMs();
     pos_time_t end, delta;
 
-    poski::OsTask::SleepMs(1000);
+    poski::OsTask::Sleep(1000);
 
     end   = poski::OsTime::GetMs();
     delta = end - start;

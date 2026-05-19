@@ -53,7 +53,11 @@ public:
         pos_task_yield();
     }
 
-    static void Sleep(pos_time_t ticks) {
+    static void Sleep(pos_time_t ms) {
+        pos_task_sleep_ms(ms);
+    }
+
+    static void SleepTicks(pos_time_t ticks) {
         pos_task_sleep(ticks);
     }
 

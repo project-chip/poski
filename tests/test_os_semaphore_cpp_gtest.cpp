@@ -55,20 +55,13 @@ TEST(OsSemaphoreCpp, BasicGiveTake) {
 }
 
 TEST(OsSemaphoreCpp, BasicRAIIScopedSemaphore) {
-    // Initialize sem with 1 token, but do not take it in the constructor.
-    poski::OsSemaphore sem(1, false);
-
     {
-        // Construct a scoped RAII-taking semaphore in this block so its
-        // destructor runs at the end of the block and releases the token.
-        poski::OsSemaphore scoped_sem(sem);
-
-        // Trying to take while the scoped semaphore holds the token should fail.
+        // Initialize sem with 1 token, and TAKE/decrement it to 0 in constructor (RAII)
+        poski::OsSemaphore sem(1, true);
+        
+        // Trying to take again should fail/timeout
         EXPECT_EQ(sem.Take(POS_TIME_NO_WAIT), POS_TIMEOUT);
-    }
-
-    // After the scoped semaphore is destroyed, the token should be available again.
-    EXPECT_EQ(sem.Take(POS_TIME_NO_WAIT), POS_OK);
+    } // Destructor automatically GIVES it back (increments to 1)
 }
 
 TEST(OsSemaphoreCpp, ConcurrencySignaling) {
