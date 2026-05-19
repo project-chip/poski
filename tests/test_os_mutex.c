@@ -49,14 +49,14 @@ uint8_t s_buffer[TEST_ITERATIONS];
 void test_mutex_nested(uint8_t test_value, int task, bool recursive, int round)
 {
     TEST_LOG("task %d: LOCK START ROUND %d\n", task, round);
-    SuccessOrQuit(pos_mutex_take(&task1_mtx, POS_TIME_FOREVER), "pos_mutex_take: error waiting for task1_mutex.");
+    SuccessOrQuit(pos_mutex_lock(&task1_mtx, POS_TIME_FOREVER), "pos_mutex_lock: error waiting for task1_mutex.");
     for (int i = 0; i < TEST_ITERATIONS; i++)
     {
         if (recursive)
         {
             TEST_LOG("task %d: take #%d RECURSIVE\n", task, i);
-            SuccessOrQuit(pos_mutex_take(&task1_mtx, POS_TIME_FOREVER),
-                          "pos_mutex_take: error waiting for task1_mutex.");
+            SuccessOrQuit(pos_mutex_lock(&task1_mtx, POS_TIME_FOREVER),
+                          "pos_mutex_lock: error waiting for task1_mutex.");
         }
         // TEST_LOG("task %d: b[%d]=0x%02x --> 0x%02x\n", task, i, s_buffer[i], test_value);
         VerifyOrQuit(s_buffer[i] != test_value, "unexpected value: mutex did not protect resource");
@@ -70,13 +70,13 @@ void test_mutex_nested(uint8_t test_value, int task, bool recursive, int round)
         if (recursive)
         {
             TEST_LOG("task %d: give #%d RECURSIVE\n", task, i);
-            SuccessOrQuit(pos_mutex_give(&task1_mtx), "pos_mutex_give: error releasing task1_mutex.");
+            SuccessOrQuit(pos_mutex_unlock(&task1_mtx), "pos_mutex_unlock: error releasing task1_mutex.");
         }
     }
     // Clear out buffer in case this task reclaims the resource again
     memset(&s_buffer, 0, sizeof(s_buffer));
     TEST_LOG("task %d: LOCK END ROUND %d\n", task, round);
-    SuccessOrQuit(pos_mutex_give(&task1_mtx), "pos_mutex_give: error releasing task1_mutex.");
+    SuccessOrQuit(pos_mutex_unlock(&task1_mtx), "pos_mutex_unlock: error releasing task1_mutex.");
 
     pos_task_sleep(10);
 }
