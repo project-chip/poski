@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_TYPES_H
-#define CHIP_OS_TYPES_H
+#ifndef POSKI_OS_TYPES_H
+#define POSKI_OS_TYPES_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -31,28 +31,28 @@
 extern "C" {
 #endif
 
-typedef void chip_os_timer_fn(void * arg);
-typedef void chip_os_signal_fn(void * arg);
-typedef void * (*chip_os_task_func_t)(void *);
+typedef void pos_timer_fn(void * arg);
+typedef void pos_signal_fn(void * arg);
+typedef void * (*pos_task_func_t)(void *);
 
-enum chip_os_error
+enum pos_error
 {
-    CHIP_OS_OK              = 0,
-    CHIP_OS_ENOMEM          = 1,
-    CHIP_OS_EINVAL          = 2,
-    CHIP_OS_INVALID_PARAM   = 3,
-    CHIP_OS_MEM_NOT_ALIGNED = 4,
-    CHIP_OS_BAD_MUTEX       = 5,
-    CHIP_OS_TIMEOUT         = 6,
-    CHIP_OS_ERR_IN_ISR      = 7,
-    CHIP_OS_ERR_PRIV        = 8,
-    CHIP_OS_OS_NOT_STARTED  = 9,
-    CHIP_OS_ENOENT          = 10,
-    CHIP_OS_EBUSY           = 11,
-    CHIP_OS_ERROR           = 12,
+    POS_OK              = 0,
+    POS_ENOMEM          = 1,
+    POS_EINVAL          = 2,
+    POS_INVALID_PARAM   = 3,
+    POS_MEM_NOT_ALIGNED = 4,
+    POS_BAD_MUTEX       = 5,
+    POS_TIMEOUT         = 6,
+    POS_ERR_IN_ISR      = 7,
+    POS_ERR_PRIV        = 8,
+    POS_OS_NOT_STARTED  = 9,
+    POS_ENOENT          = 10,
+    POS_EBUSY           = 11,
+    POS_ERROR           = 12,
 };
 
-typedef enum chip_os_error chip_os_error_t;
+typedef enum pos_error pos_error_t;
 
 /* Include OS-specific definitions */
 #include "poski/osal/os_port.h"
@@ -61,4 +61,4 @@ typedef enum chip_os_error chip_os_error_t;
 }
 #endif
 
-#endif /* CHIP_OS_TYPES_H */
+#endif /* POSKI_OS_TYPES_H */

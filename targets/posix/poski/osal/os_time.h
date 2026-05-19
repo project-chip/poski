@@ -23,8 +23,8 @@
  *          to POSIX platforms.
  */
 
-#ifndef CHIP_OS_POSIX_TIME_H
-#define CHIP_OS_POSIX_TIME_H
+#ifndef POSKI_OS_POSIX_TIME_H
+#define POSKI_OS_POSIX_TIME_H
 
 #include <time.h>
 
@@ -33,29 +33,29 @@
 #include <dispatch/dispatch.h>
 
 // Apple MacOS
-#define CHIP_OS_TIME_FOREVER DISPATCH_TIME_FOREVER
-#define CHIP_OS_TIME_NO_WAIT 0
-#define CHIP_OS_TICKS_PER_SEC 1000000
+#define POS_TIME_FOREVER DISPATCH_TIME_FOREVER
+#define POS_TIME_NO_WAIT 0
+#define POS_TICKS_PER_SEC 1000000
 
-typedef uint64_t chip_os_time_t;
-typedef int64_t chip_os_stime_t;
+typedef uint64_t pos_time_t;
+typedef int64_t pos_stime_t;
 
 #else
 
 // Linux and stock POSIX
-#define CHIP_OS_TIME_FOREVER INT32_MAX
-#define CHIP_OS_TIME_NO_WAIT 0
-#define CHIP_OS_TICKS_PER_SEC 1000
+#define POS_TIME_FOREVER INT32_MAX
+#define POS_TIME_NO_WAIT 0
+#define POS_TICKS_PER_SEC 1000
 
-typedef uint32_t chip_os_time_t;
-typedef int32_t chip_os_stime_t;
+typedef uint32_t pos_time_t;
+typedef int32_t pos_stime_t;
 
 #endif
 
-struct chip_os_timer
+struct pos_timer
 {
-    chip_os_timer_fn * tm_cb;
-    chip_os_time_t tm_ticks;
+    pos_timer_fn * tm_cb;
+    pos_time_t tm_ticks;
 #ifdef __APPLE__
     dispatch_source_t tm_timer;
 #else
@@ -65,4 +65,4 @@ struct chip_os_timer
     void * tm_arg;
 };
 
-#endif // CHIP_OS_POSIX_TIME_H
+#endif // POSKI_OS_POSIX_TIME_H

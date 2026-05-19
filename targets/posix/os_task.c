@@ -46,13 +46,13 @@ static int s_task_count = 0;
  *
  * @return 0 on success, non-zero on failure.
  */
-chip_os_error_t chip_os_task_init(struct chip_os_task * t, const char * name, chip_os_task_func_t func, void * arg, uint8_t prio,
+pos_error_t pos_task_init(struct pos_task * t, const char * name, pos_task_func_t func, void * arg, uint8_t prio,
                                   uint16_t stack_size)
 {
     int ret;
     if ((t == NULL) || (func == NULL))
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     ret = pthread_attr_init(&t->attr);
@@ -87,13 +87,13 @@ exit:
  * XXX
  * NOTE: This interface is currently experimental and not ready for common use
  */
-chip_os_error_t chip_os_task_remove(struct chip_os_task * t)
+pos_error_t pos_task_remove(struct pos_task * t)
 {
     int ret;
-    ret = (t == NULL) ? EINVAL : CHIP_OS_OK;
+    ret = (t == NULL) ? EINVAL : POS_OK;
     SuccessOrExit(ret);
 
-    ret = (t->handle) ? EINVAL : CHIP_OS_OK;
+    ret = (t->handle) ? EINVAL : POS_OK;
     SuccessOrExit(ret);
 
     ret = pthread_cancel(t->handle);
@@ -110,22 +110,22 @@ exit:
  *
  * @return number of tasks initialized
  */
-uint8_t chip_os_task_count(void)
+uint8_t pos_task_count(void)
 {
     return s_task_count;
 }
 
-void * chip_os_get_current_task_id(void)
+void * pos_get_current_task_id(void)
 {
     return (void *) pthread_self();
 }
 
-void chip_os_task_yield(void)
+void pos_task_yield(void)
 {
     sched_yield();
 }
 
-void chip_os_task_sleep_ms(chip_os_time_t ms)
+void pos_task_sleep_ms(pos_time_t ms)
 {
     struct timespec sleep_time;
     int s = ms / 1000;
@@ -137,18 +137,18 @@ void chip_os_task_sleep_ms(chip_os_time_t ms)
     nanosleep(&sleep_time, NULL);
 }
 
-void chip_os_task_sleep(chip_os_time_t ticks)
+void pos_task_sleep(pos_time_t ticks)
 {
-    chip_os_time_t ms = chip_os_time_ticks_to_ms(ticks);
-    chip_os_task_sleep_ms(ms);
+    pos_time_t ms = pos_time_ticks_to_ms(ticks);
+    pos_task_sleep_ms(ms);
 }
 
-bool chip_os_sched_started(void)
+bool pos_sched_started(void)
 {
     return true;
 }
 
-void chip_os_sched_start(void)
+void pos_sched_start(void)
 {
 #ifdef __APPLE__
     /* Start the main queue */
@@ -156,7 +156,7 @@ void chip_os_sched_start(void)
 #else
     while (true)
     {
-        chip_os_task_yield();
+        pos_task_yield();
     }
 #endif // __APPLE__
 

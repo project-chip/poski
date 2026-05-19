@@ -16,20 +16,20 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
-chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mutex)
+pos_error_t pos_mutex_init(struct pos_mutex * mutex)
 {
     k_mutex_init(&mutex->mutex);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mutex, chip_os_time_t timeout)
+pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout)
 {
     k_timeout_t tmo;
-    if (timeout == CHIP_OS_TIME_FOREVER) {
+    if (timeout == POS_TIME_FOREVER) {
         tmo = K_FOREVER;
-    } else if (timeout == CHIP_OS_TIME_NO_WAIT) {
+    } else if (timeout == POS_TIME_NO_WAIT) {
         tmo = K_NO_WAIT;
     } else {
         tmo = K_MSEC(timeout);
@@ -37,16 +37,16 @@ chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mutex, chip_os_time_t 
 
     int err = k_mutex_lock(&mutex->mutex, tmo);
     if (err == 0) {
-        return CHIP_OS_OK;
+        return POS_OK;
     } else if (err == -EAGAIN) {
-        return CHIP_OS_TIMEOUT;
+        return POS_TIMEOUT;
     } else {
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 }
 
-chip_os_error_t chip_os_mutex_give(struct chip_os_mutex * mutex)
+pos_error_t pos_mutex_give(struct pos_mutex * mutex)
 {
     int err = k_mutex_unlock(&mutex->mutex);
-    return (err == 0) ? CHIP_OS_OK : CHIP_OS_ERROR;
+    return (err == 0) ? POS_OK : POS_ERROR;
 }

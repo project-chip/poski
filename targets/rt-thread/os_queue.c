@@ -21,23 +21,23 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-chip_os_error_t chip_os_queue_init(struct chip_os_queue * msgq, size_t msg_size, size_t max_msgs)
+pos_error_t pos_queue_init(struct pos_queue * msgq, size_t msg_size, size_t max_msgs)
 {
     if (!msgq)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     msgq->handle = rt_mq_create("chip_msgq", (rt_size_t)msg_size, (rt_size_t)max_msgs, RT_IPC_FLAG_PRIO);
     assert(msgq->handle);
 
-    return (msgq->handle == NULL) ? CHIP_OS_ERROR : CHIP_OS_OK;
+    return (msgq->handle == NULL) ? POS_ERROR : POS_OK;
 }
 
-chip_os_error_t chip_os_queue_get(struct chip_os_queue * queue, void * data, chip_os_time_t tmo)
+pos_error_t pos_queue_get(struct pos_queue * queue, void * data, pos_time_t tmo)
 {
     rt_err_t ret;
 
@@ -45,22 +45,22 @@ chip_os_error_t chip_os_queue_get(struct chip_os_queue * queue, void * data, chi
 
     ret = rt_mq_recv(queue->handle,data ,queue->handle->msg_size, tmo);
 
-    return ret == RT_EOK ? CHIP_OS_OK : CHIP_OS_ERROR;
+    return ret == RT_EOK ? POS_OK : POS_ERROR;
 }
 
-chip_os_error_t chip_os_queue_put(struct chip_os_queue * queue, void * data)
+pos_error_t pos_queue_put(struct pos_queue * queue, void * data)
 {
     if (!queue)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(queue->handle);
 
     if (rt_mq_send(queue->handle, data, queue->handle->msg_size) != RT_EOK)
     {
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }

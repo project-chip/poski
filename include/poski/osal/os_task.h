@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_TASK_H
-#define CHIP_OS_TASK_H
+#ifndef POSKI_OS_TASK_H
+#define POSKI_OS_TASK_H
 
 #include "poski/osal/os_types.h"
 
@@ -33,19 +33,19 @@ extern "C" {
  * @brief Create a task.
  *
  * This routine initializes a task, then schedules it for immediate execution.
- * Typically, tasks are created and then started with @a chip_os_sched_start.
+ * Typically, tasks are created and then started with @a pos_sched_start.
  *
- * @param t Pointer to uninitialized struct chip_os_task.
+ * @param t Pointer to uninitialized struct pos_task.
  * @param name Debugging name of the task.
  * @param func Task entry function.
  * @param arg Argument parameter pointer.
  * @param prio task priority.
  * @param stack_size Stack size in bytes.
  *
- * @retval CHIP_OS_OK Task is initialized.
- * @retval CHIP_OS_ERROR Task is invalid.
+ * @retval POS_OK Task is initialized.
+ * @retval POS_ERROR Task is invalid.
  */
-chip_os_error_t chip_os_task_init(struct chip_os_task * t, const char * name, chip_os_task_func_t func, void * arg, uint8_t prio,
+pos_error_t pos_task_init(struct pos_task * t, const char * name, pos_task_func_t func, void * arg, uint8_t prio,
                                   uint16_t stack_size);
 
 /**
@@ -57,7 +57,7 @@ chip_os_error_t chip_os_task_init(struct chip_os_task * t, const char * name, ch
  *
  * @return N/A
  */
-void chip_os_task_yield(void);
+void pos_task_yield(void);
 
 /**
  * @brief Put the current thread to sleep.
@@ -69,16 +69,16 @@ void chip_os_task_yield(void);
  *
  * @return N/A
  */
-void chip_os_task_sleep(chip_os_time_t ticks);
+void pos_task_sleep(pos_time_t ticks);
 
-void chip_os_task_sleep_ms(chip_os_time_t ms);
+void pos_task_sleep_ms(pos_time_t ms);
 
 /**
  * @brief Get task ID of the current task.
  *
  * @return ID of current task.
  */
-void * chip_os_get_current_task_id(void);
+void * pos_get_current_task_id(void);
 
 /**
  * @brief Abort a task.
@@ -92,13 +92,13 @@ void * chip_os_get_current_task_id(void);
  *
  * @param task ID of task to abort.
  *
- * @retval CHIP_OS_OK Task was removed.
- * @retval CHIP_OS_ERROR Problem removing task.
+ * @retval POS_OK Task was removed.
+ * @retval POS_ERROR Problem removing task.
  */
-chip_os_error_t chip_os_task_remove(struct chip_os_task * t);
+pos_error_t pos_task_remove(struct pos_task * t);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_TASK_H */
+#endif /* POSKI_OS_TASK_H */

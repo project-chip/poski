@@ -21,55 +21,55 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_init(struct pos_mutex * mu)
 {
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     mu->handle = xSemaphoreCreateRecursiveMutex();
     assert(mu->handle);
 
-    return (mu->handle == NULL) ? CHIP_OS_BAD_MUTEX : CHIP_OS_OK;
+    return (mu->handle == NULL) ? POS_BAD_MUTEX : POS_OK;
 }
 
-chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mu, chip_os_time_t timeout)
+pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
 {
     BaseType_t ret;
 
-    assert(!chip_hw_in_isr());
+    assert(!pos_hw_in_isr());
 
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(mu->handle);
 
     ret = xSemaphoreTakeRecursive(mu->handle, timeout);
 
-    return ret == pdPASS ? CHIP_OS_OK : CHIP_OS_TIMEOUT;
+    return ret == pdPASS ? POS_OK : POS_TIMEOUT;
 }
 
-chip_os_error_t chip_os_mutex_give(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_give(struct pos_mutex * mu)
 {
-    assert(!chip_hw_in_isr());
+    assert(!pos_hw_in_isr());
 
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(mu->handle);
 
     if (xSemaphoreGiveRecursive(mu->handle) != pdPASS)
     {
-        return CHIP_OS_BAD_MUTEX;
+        return POS_BAD_MUTEX;
     }
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }

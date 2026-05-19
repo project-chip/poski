@@ -17,22 +17,22 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include <assert.h>
 
 typedef void (*rtt_task_func_t)(void *);
 
-void chip_os_task_dispatch(void * arg)
+void pos_task_dispatch(void * arg)
 {
-    struct chip_os_task * task = (struct chip_os_task *) arg;
+    struct pos_task * task = (struct pos_task *) arg;
 
     assert(task);
     assert(task->func);
     task->func(task->arg);
 }
 
-chip_os_error_t chip_os_task_init(struct chip_os_task * task, const char * name, chip_os_task_func_t func, void * arg, uint8_t prio,
+pos_error_t pos_task_init(struct pos_task * task, const char * name, pos_task_func_t func, void * arg, uint8_t prio,
                                   uint16_t stack_size)
 {
     rt_err_t err;
@@ -41,7 +41,7 @@ chip_os_error_t chip_os_task_init(struct chip_os_task * task, const char * name,
 
     if ((task == NULL) || (func == NULL))
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     task->arg  = arg;
@@ -52,34 +52,34 @@ chip_os_error_t chip_os_task_init(struct chip_os_task * task, const char * name,
     {
         err = rt_thread_startup(task->handle);
     }
-    return (err == RT_EOK) ? CHIP_OS_OK : CHIP_OS_ERROR;
+    return (err == RT_EOK) ? POS_OK : POS_ERROR;
 }
 
-void chip_os_task_yield(void)
+void pos_task_yield(void)
 {
     rt_thread_yield();
 }
 
-void chip_os_task_sleep(chip_os_time_t ticks)
+void pos_task_sleep(pos_time_t ticks)
 {
     rt_thread_delay(ticks);
 }
 
-void chip_os_task_sleep_ms(chip_os_time_t ms)
+void pos_task_sleep_ms(pos_time_t ms)
 {
     rt_thread_mdelay((rt_int32_t)ms);
 }
 
 /* 函数返回值是否可以换成 task->handle */
-void * chip_os_get_current_task_id(void)
+void * pos_get_current_task_id(void)
 {
     return (void*)rt_thread_self();
 }
 
-chip_os_error_t chip_os_task_remove(struct chip_os_task * t)
+pos_error_t pos_task_remove(struct pos_task * t)
 {
     rt_err_t err;
     err = rt_thread_delete(t->handle);
 
-    return (err == RT_EOK) ? CHIP_OS_OK : CHIP_OS_ERROR;
+    return (err == RT_EOK) ? POS_OK : POS_ERROR;
 }

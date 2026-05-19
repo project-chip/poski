@@ -16,29 +16,29 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include <stdlib.h>
 
-chip_os_error_t chip_os_queue_init(struct chip_os_queue * msgq, size_t msg_size, size_t max_msgs)
+pos_error_t pos_queue_init(struct pos_queue * msgq, size_t msg_size, size_t max_msgs)
 {
     msgq->buffer = malloc(msg_size * max_msgs);
     if (!msgq->buffer) {
-        return CHIP_OS_ENOMEM;
+        return POS_ENOMEM;
     }
 
     k_msgq_init(&msgq->msgq, msgq->buffer, msg_size, max_msgs);
     msgq->sig_cb = NULL;
     msgq->sig_arg = NULL;
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_queue_get(struct chip_os_queue * msgq, void * data, chip_os_time_t timeout)
+pos_error_t pos_queue_get(struct pos_queue * msgq, void * data, pos_time_t timeout)
 {
     k_timeout_t tmo;
-    if (timeout == CHIP_OS_TIME_FOREVER) {
+    if (timeout == POS_TIME_FOREVER) {
         tmo = K_FOREVER;
-    } else if (timeout == CHIP_OS_TIME_NO_WAIT) {
+    } else if (timeout == POS_TIME_NO_WAIT) {
         tmo = K_NO_WAIT;
     } else {
         tmo = K_MSEC(timeout);
@@ -46,15 +46,15 @@ chip_os_error_t chip_os_queue_get(struct chip_os_queue * msgq, void * data, chip
 
     int err = k_msgq_get(&msgq->msgq, data, tmo);
     if (err == 0) {
-        return CHIP_OS_OK;
+        return POS_OK;
     } else if (err == -EAGAIN) {
-        return CHIP_OS_TIMEOUT;
+        return POS_TIMEOUT;
     } else {
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 }
 
-chip_os_error_t chip_os_queue_put(struct chip_os_queue * msgq, void * data)
+pos_error_t pos_queue_put(struct pos_queue * msgq, void * data)
 {
     int err = k_msgq_put(&msgq->msgq, data, K_NO_WAIT);
     
@@ -62,25 +62,25 @@ chip_os_error_t chip_os_queue_put(struct chip_os_queue * msgq, void * data)
         if (msgq->sig_cb) {
             msgq->sig_cb(msgq->sig_arg);
         }
-        return CHIP_OS_OK;
+        return POS_OK;
     } else if (err == -EAGAIN) {
-        return CHIP_OS_EBUSY;
+        return POS_EBUSY;
     } else {
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 }
 
-int chip_os_queue_inited(const struct chip_os_queue * msgq)
+int pos_queue_inited(const struct pos_queue * msgq)
 {
     return (msgq->buffer != NULL);
 }
 
-bool chip_os_queue_is_empty(struct chip_os_queue * msgq)
+bool pos_queue_is_empty(struct pos_queue * msgq)
 {
     return k_msgq_num_used_get(&msgq->msgq) == 0;
 }
 
-void chip_os_queue_set_signal_cb(struct chip_os_queue * msgq, chip_os_signal_fn signal_cb, void * data)
+void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, void * data)
 {
     msgq->sig_cb = signal_cb;
     msgq->sig_arg = data;

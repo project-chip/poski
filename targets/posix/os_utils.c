@@ -24,36 +24,36 @@
 
 #include "os_utils.h"
 
-chip_os_error_t map_posix_to_osal_error(int ret)
+pos_error_t map_posix_to_osal_error(int ret)
 {
-    chip_os_error_t err;
+    pos_error_t err;
 
     switch (ret)
     {
     case 0:
-        err = CHIP_OS_OK;
+        err = POS_OK;
         break;
 
     case ENOMEM:
-        err = CHIP_OS_ENOMEM;
+        err = POS_ENOMEM;
         break;
     case ETIMEDOUT:
-        err = CHIP_OS_TIMEOUT;
+        err = POS_TIMEOUT;
         break;
     case EBUSY:
-        err = CHIP_OS_EBUSY;
+        err = POS_EBUSY;
         break;
     case EINVAL:
-        err = CHIP_OS_EINVAL;
+        err = POS_EINVAL;
         break;
     case EDEADLK:
-        err = CHIP_OS_BAD_MUTEX;
+        err = POS_BAD_MUTEX;
         break;
     case EPERM:
-        err = CHIP_OS_ERR_PRIV;
+        err = POS_ERR_PRIV;
         break;
     default:
-        err = CHIP_OS_ERROR;
+        err = POS_ERROR;
         break;
     }
 

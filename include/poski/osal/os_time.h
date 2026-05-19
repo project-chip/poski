@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_TIME_H
-#define CHIP_OS_TIME_H
+#ifndef POSKI_OS_TIME_H
+#define POSKI_OS_TIME_H
 
 #include "poski/osal/os_types.h"
 
@@ -37,16 +37,16 @@ extern "C" {
  *
  * @return Current uptime.
  */
-chip_os_time_t chip_os_time_get(void);
+pos_time_t pos_time_get(void);
 
-chip_os_time_t chip_os_time_get_ms(void);
+pos_time_t pos_time_get_ms(void);
 
-chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms);
+pos_time_t pos_time_ms_to_ticks(pos_time_t ms);
 
-chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks);
+pos_time_t pos_time_ticks_to_ms(pos_time_t ticks);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_TIME_H */
+#endif /* POSKI_OS_TIME_H */

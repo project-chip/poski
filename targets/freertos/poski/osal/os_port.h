@@ -17,8 +17,8 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_OS_PORT_H
-#define CHIP_OS_PORT_H
+#ifndef POSKI_OS_PORT_H
+#define POSKI_OS_PORT_H
 
 #include <assert.h>
 #include <stdint.h>
@@ -34,154 +34,154 @@
 extern "C" {
 #endif
 
-#define CHIP_OS_TIME_NO_WAIT 0
-#define CHIP_OS_TIME_FOREVER portMAX_DELAY
-#define CHIP_OS_TICKS_PER_SEC configTICK_RATE_HZ
+#define POS_TIME_NO_WAIT 0
+#define POS_TIME_FOREVER portMAX_DELAY
+#define POS_TICKS_PER_SEC configTICK_RATE_HZ
 
-#define CHIP_OS_PRIORITY_MIN 1
-#define CHIP_OS_PRIORITY_MAX configMAX_PRIORITIES
-#define CHIP_OS_PRIORITY_APP (CHIP_OS_PRIORITY_MIN + 1)
+#define POS_PRIORITY_MIN 1
+#define POS_PRIORITY_MAX configMAX_PRIORITIES
+#define POS_PRIORITY_APP (POS_PRIORITY_MIN + 1)
 
-typedef BaseType_t chip_os_base_t;
-typedef StackType_t chip_os_stack_t;
+typedef BaseType_t pos_base_t;
+typedef StackType_t pos_stack_t;
 
-typedef TickType_t chip_os_time_t;
-typedef int32_t chip_os_stime_t;
+typedef TickType_t pos_time_t;
+typedef int32_t pos_stime_t;
 
-struct chip_os_mutex
+struct pos_mutex
 {
     SemaphoreHandle_t handle;
 };
 
-struct chip_os_sem
+struct pos_sem
 {
     SemaphoreHandle_t handle;
 };
 
-struct chip_os_queue
+struct pos_queue
 {
     QueueHandle_t handle;
 };
 
-struct chip_os_timer
+struct pos_timer
 {
     TimerHandle_t handle;
-    chip_os_timer_fn * func;
+    pos_timer_fn * func;
     void * arg;
 };
 
-struct chip_os_task
+struct pos_task
 {
     TaskHandle_t handle;
-    chip_os_task_func_t func;
+    pos_task_func_t func;
     void * arg;
 };
 
-static inline bool chip_os_os_started(void)
+static inline bool pos_os_started(void)
 {
     return xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
 }
 
-static inline uint16_t chip_os_sem_get_count(struct chip_os_sem * sem)
+static inline uint16_t pos_sem_get_count(struct pos_sem * sem)
 {
     assert(sem);
     assert(sem->handle);
     return uxSemaphoreGetCount(sem->handle);
 }
 
-static inline chip_os_error_t chip_os_timer_stop(struct chip_os_timer * tm)
+static inline pos_error_t pos_timer_stop(struct pos_timer * tm)
 {
     assert(tm);
     assert(tm->handle);
     return xTimerStop(tm->handle, portMAX_DELAY);
 }
 
-static inline bool chip_os_timer_is_active(struct chip_os_timer * tm)
+static inline bool pos_timer_is_active(struct pos_timer * tm)
 {
     assert(tm);
     assert(tm->handle);
     return xTimerIsTimerActive(tm->handle) == pdTRUE;
 }
 
-static inline chip_os_error_t chip_os_queue_init(struct chip_os_queue * queue, size_t msg_size, size_t max_msgs)
+static inline pos_error_t pos_queue_init(struct pos_queue * queue, size_t msg_size, size_t max_msgs)
 {
     queue->handle = xQueueCreate(max_msgs, msg_size);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-static inline int chip_os_queue_inited(const struct chip_os_queue * queue)
+static inline int pos_queue_inited(const struct pos_queue * queue)
 {
     return (queue->handle != NULL);
 }
 
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks);
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks);
 
-static inline chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms)
+static inline pos_time_t pos_time_ms_to_ticks(pos_time_t ms)
 {
-    return (ms * CHIP_OS_TICKS_PER_SEC) / 1000;
+    return (ms * POS_TICKS_PER_SEC) / 1000;
 }
 
-static inline chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks)
+static inline pos_time_t pos_time_ticks_to_ms(pos_time_t ticks)
 {
-    return (ticks * 1000) / CHIP_OS_TICKS_PER_SEC;
+    return (ticks * 1000) / POS_TICKS_PER_SEC;
 }
 
-static inline chip_os_time_t chip_os_time_get(void)
+static inline pos_time_t pos_time_get(void)
 {
     return xTaskGetTickCountFromISR();
 }
 
-static inline chip_os_time_t chip_os_time_get_ms(void)
+static inline pos_time_t pos_time_get_ms(void)
 {
-    return chip_os_time_ticks_to_ms(chip_os_time_get());
+    return pos_time_ticks_to_ms(pos_time_get());
 }
 
-static inline chip_os_error_t chip_os_timer_start_ms(struct chip_os_timer * timer, chip_os_time_t duration)
+static inline pos_error_t pos_timer_start_ms(struct pos_timer * timer, pos_time_t duration)
 {
-    chip_os_time_t ticks = chip_os_time_ms_to_ticks(duration);
-    return chip_os_timer_start(timer, ticks);
+    pos_time_t ticks = pos_time_ms_to_ticks(duration);
+    return pos_timer_start(timer, ticks);
 }
 
-static inline chip_os_time_t chip_os_timer_get_ticks(struct chip_os_timer * tm)
+static inline pos_time_t pos_timer_get_ticks(struct pos_timer * tm)
 {
     assert(tm);
     assert(tm->handle);
     return xTimerGetExpiryTime(tm->handle);
 }
 
-static inline void * chip_os_timer_arg_get(struct chip_os_timer * timer)
+static inline void * pos_timer_arg_get(struct pos_timer * timer)
 {
     assert(timer);
     return timer->arg;
 }
 
-static inline void chip_os_timer_arg_set(struct chip_os_timer * timer, void * arg)
+static inline void pos_timer_arg_set(struct pos_timer * timer, void * arg)
 {
     assert(timer);
     timer->arg = arg;
 }
 
-static inline void chip_os_task_yield(void)
+static inline void pos_task_yield(void)
 {
     taskYIELD();
 }
 
-static inline void chip_os_task_sleep(chip_os_time_t ticks)
+static inline void pos_task_sleep(pos_time_t ticks)
 {
     vTaskDelay(ticks);
 }
 
-static inline void chip_os_task_sleep_ms(chip_os_time_t ms)
+static inline void pos_task_sleep_ms(pos_time_t ms)
 {
-    chip_os_task_sleep(chip_os_time_ms_to_ticks(ms));
+    pos_task_sleep(pos_time_ms_to_ticks(ms));
 }
 
-static inline void * chip_os_get_current_task_id(void)
+static inline void * pos_get_current_task_id(void)
 {
     return xTaskGetCurrentTaskHandle();
 }
 
-static inline void chip_os_sched_start(void)
+static inline void pos_sched_start(void)
 {
     vTaskStartScheduler();
 }
@@ -190,4 +190,4 @@ static inline void chip_os_sched_start(void)
 }
 #endif
 
-#endif /* CHIP_OS_PORT_H */
+#endif /* POSKI_OS_PORT_H */

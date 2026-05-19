@@ -21,53 +21,53 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_init(struct pos_mutex * mu)
 {
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     mu->handle = rt_mutex_create("chip_mutex",RT_IPC_FLAG_PRIO);
     assert(mu->handle);
 
-    return (mu->handle == NULL) ? CHIP_OS_BAD_MUTEX : CHIP_OS_OK;
+    return (mu->handle == NULL) ? POS_BAD_MUTEX : POS_OK;
 }
 
-chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mu, chip_os_time_t timeout)
+pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
 {
     rt_err_t ret;
 
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(mu->handle);
 
     ret = rt_mutex_take(mu->handle, timeout);
 
-    return ret == RT_EOK ? CHIP_OS_OK : CHIP_OS_BAD_MUTEX;
+    return ret == RT_EOK ? POS_OK : POS_BAD_MUTEX;
 }
 
-chip_os_error_t chip_os_mutex_give(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_give(struct pos_mutex * mu)
 {
-    assert(!chip_hw_in_isr());
+    assert(!pos_hw_in_isr());
 
     if (!mu)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(mu->handle);
 
     if (rt_mutex_release(mu->handle) != RT_EOK)
     {
-        return CHIP_OS_BAD_MUTEX;
+        return POS_BAD_MUTEX;
     }
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }

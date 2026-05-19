@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_QUEUE_H
-#define CHIP_OS_QUEUE_H
+#ifndef POSKI_OS_QUEUE_H
+#define POSKI_OS_QUEUE_H
 
 #include "poski/osal/os_types.h"
 
@@ -43,7 +43,7 @@ extern "C" {
  *
  * @return N/A
  */
-chip_os_error_t chip_os_queue_init(struct chip_os_queue * msgq, size_t msg_size, size_t max_msgs);
+pos_error_t pos_queue_init(struct pos_queue * msgq, size_t msg_size, size_t max_msgs);
 
 /**
  * @brief Receive a message from a message queue.
@@ -51,18 +51,18 @@ chip_os_error_t chip_os_queue_init(struct chip_os_queue * msgq, size_t msg_size,
  * This routine receives a message from message queue @a q in a "first in,
  * first out" manner.
  *
- * @note Can be called by ISRs, but @a timeout must be set to CHIP_OS_TIME_NO_WAIT.
+ * @note Can be called by ISRs, but @a timeout must be set to POS_TIME_NO_WAIT.
  *
  * @param msgq Address of the message queue.
  * @param data Address of area to hold the received message.
  * @param timeout Waiting period to receive the message (in milliseconds),
- *                or one of the special values CHIP_OS_TIME_NO_WAIT and CHIP_OS_TIME_FOREVER.
+ *                or one of the special values POS_TIME_NO_WAIT and POS_TIME_FOREVER.
  *
- * @retval CHIP_OS_OK Message received.
- * @retval CHIP_OS_EBUSY Returned without waiting.
- * @retval CHIP_OS_TIMEOUT Waiting period timed out.
+ * @retval POS_OK Message received.
+ * @retval POS_EBUSY Returned without waiting.
+ * @retval POS_TIMEOUT Waiting period timed out.
  */
-chip_os_error_t chip_os_queue_get(struct chip_os_queue * msgq, void * data, chip_os_time_t timeout);
+pos_error_t pos_queue_get(struct pos_queue * msgq, void * data, pos_time_t timeout);
 
 /**
  * @brief Send a message to a message queue.
@@ -74,28 +74,28 @@ chip_os_error_t chip_os_queue_get(struct chip_os_queue * msgq, void * data, chip
  * @param msgq Address of the message queue.
  * @param data Pointer to the message.
  *
- * @retval CHIP_OS_OK Message sent.
- * @retval CHIP_OS_EBUSY Returned without waiting or queue purged.
- * @retval CHIP_OS_TIMEOUT Waiting period timed out.
+ * @retval POS_OK Message sent.
+ * @retval POS_EBUSY Returned without waiting or queue purged.
+ * @retval POS_TIMEOUT Waiting period timed out.
  */
-chip_os_error_t chip_os_queue_put(struct chip_os_queue * msgq, void * data);
+pos_error_t pos_queue_put(struct pos_queue * msgq, void * data);
 
 /**
  * @brief Returns whether the given message queue is initialized and valid.
  *
  * @param msgq Address of the message queue.
  *
- * @retval CHIP_OS_OK Queue is valid.
- * @retval CHIP_OS_EINVAL Queue is not valid.
+ * @retval POS_OK Queue is valid.
+ * @retval POS_EINVAL Queue is not valid.
  */
-int chip_os_queue_inited(const struct chip_os_queue * msgq);
+int pos_queue_inited(const struct pos_queue * msgq);
 
-bool chip_os_queue_is_empty(struct chip_os_queue * msgq);
+bool pos_queue_is_empty(struct pos_queue * msgq);
 
-void chip_os_queue_set_signal_cb(struct chip_os_queue * msgq, chip_os_signal_fn signal_cb, void * data);
+void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, void * data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_QUEUE_H */
+#endif /* POSKI_OS_QUEUE_H */

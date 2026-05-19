@@ -16,20 +16,20 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
-chip_os_error_t chip_os_sem_init(struct chip_os_sem * sem, uint16_t tokens)
+pos_error_t pos_sem_init(struct pos_sem * sem, uint16_t tokens)
 {
     k_sem_init(&sem->sem, tokens, K_SEM_MAX_LIMIT);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeout)
+pos_error_t pos_sem_take(struct pos_sem * sem, pos_time_t timeout)
 {
     k_timeout_t tmo;
-    if (timeout == CHIP_OS_TIME_FOREVER) {
+    if (timeout == POS_TIME_FOREVER) {
         tmo = K_FOREVER;
-    } else if (timeout == CHIP_OS_TIME_NO_WAIT) {
+    } else if (timeout == POS_TIME_NO_WAIT) {
         tmo = K_NO_WAIT;
     } else {
         tmo = K_MSEC(timeout);
@@ -37,16 +37,16 @@ chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeou
 
     int err = k_sem_take(&sem->sem, tmo);
     if (err == 0) {
-        return CHIP_OS_OK;
+        return POS_OK;
     } else if (err == -EAGAIN) {
-        return CHIP_OS_TIMEOUT;
+        return POS_TIMEOUT;
     } else {
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 }
 
-chip_os_error_t chip_os_sem_give(struct chip_os_sem * sem)
+pos_error_t pos_sem_give(struct pos_sem * sem)
 {
     k_sem_give(&sem->sem);
-    return CHIP_OS_OK;
+    return POS_OK;
 }

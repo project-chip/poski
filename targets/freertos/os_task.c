@@ -17,33 +17,33 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include <assert.h>
 
-void chip_os_task_dispatch(void * arg)
+void pos_task_dispatch(void * arg)
 {
-    struct chip_os_task * task = (struct chip_os_task *) arg;
+    struct pos_task * task = (struct pos_task *) arg;
 
     assert(task);
     assert(task->func);
     task->func(task->arg);
 }
 
-chip_os_error_t chip_os_task_init(struct chip_os_task * task, const char * name, chip_os_task_func_t func, void * arg, uint8_t prio,
+pos_error_t pos_task_init(struct pos_task * task, const char * name, pos_task_func_t func, void * arg, uint8_t prio,
                                   uint16_t stack_size)
 {
-    chip_os_base_t err;
+    pos_base_t err;
 
     if ((task == NULL) || (func == NULL))
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     task->func = func;
     task->arg  = arg;
 
-    err = xTaskCreate(chip_os_task_dispatch, name, stack_size / sizeof(chip_os_base_t), task, prio, &task->handle);
+    err = xTaskCreate(pos_task_dispatch, name, stack_size / sizeof(pos_base_t), task, prio, &task->handle);
 
-    return (err == pdPASS) ? CHIP_OS_OK : CHIP_OS_ENOMEM;
+    return (err == pdPASS) ? POS_OK : POS_ENOMEM;
 }

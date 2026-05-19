@@ -16,44 +16,44 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_OS_ZEPHYR_TYPES_H
-#define CHIP_OS_ZEPHYR_TYPES_H
+#ifndef POSKI_OS_ZEPHYR_TYPES_H
+#define POSKI_OS_ZEPHYR_TYPES_H
 
 #include <zephyr/kernel.h>
 
 /* The highest and lowest task priorities */
 /* Zephyr priorities are 0 (highest) to N (lowest) for preemptive threads. */
 /* We assume CONFIG_NUM_PREEMPT_PRIORITIES is defined. */
-#define CHIP_OS_PRIORITY_MIN (CONFIG_NUM_PREEMPT_PRIORITIES - 1)
-#define CHIP_OS_PRIORITY_MAX 0
-#define CHIP_OS_PRIORITY_APP (CHIP_OS_PRIORITY_MIN - 1)
+#define POS_PRIORITY_MIN (CONFIG_NUM_PREEMPT_PRIORITIES - 1)
+#define POS_PRIORITY_MAX 0
+#define POS_PRIORITY_APP (POS_PRIORITY_MIN - 1)
 
-typedef int chip_os_base_t;
-typedef int chip_os_stack_t;
+typedef int pos_base_t;
+typedef int pos_stack_t;
 
-struct chip_os_task
+struct pos_task
 {
     struct k_thread thread;
     k_tid_t tid;
     void * stack;
 };
 
-struct chip_os_queue
+struct pos_queue
 {
     struct k_msgq msgq;
     void * buffer;
-    chip_os_signal_fn * sig_cb;
+    pos_signal_fn * sig_cb;
     void * sig_arg;
 };
 
-struct chip_os_mutex
+struct pos_mutex
 {
     struct k_mutex mutex;
 };
 
-struct chip_os_sem
+struct pos_sem
 {
     struct k_sem sem;
 };
 
-#endif // CHIP_OS_ZEPHYR_TYPES_H
+#endif // POSKI_OS_ZEPHYR_TYPES_H

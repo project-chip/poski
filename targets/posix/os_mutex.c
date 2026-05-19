@@ -23,7 +23,7 @@
 #include <poski/osal/osal.h>
 #include "os_utils.h"
 
-chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_init(struct pos_mutex * mu)
 {
     int ret = 0;
 
@@ -37,10 +37,10 @@ chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mu)
     SuccessOrExit(ret);
 
 exit:
-    return (ret) ? CHIP_OS_BAD_MUTEX : CHIP_OS_OK;
+    return (ret) ? POS_BAD_MUTEX : POS_OK;
 }
 
-chip_os_error_t chip_os_mutex_give(struct chip_os_mutex * mu)
+pos_error_t pos_mutex_give(struct pos_mutex * mu)
 {
     int ret = (pthread_mutex_unlock(&mu->lock));
     SuccessOrExit(ret);
@@ -49,7 +49,7 @@ exit:
     return map_posix_to_osal_error(ret);
 }
 
-chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mu, chip_os_time_t timeout)
+pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
 {
     int ret;
 
@@ -57,7 +57,7 @@ chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mu, chip_os_time_t tim
     ret = pthread_mutex_lock(&mu->lock);
     SuccessOrExit(ret);
 #else
-    if (timeout == CHIP_OS_TIME_FOREVER)
+    if (timeout == POS_TIME_FOREVER)
     {
         ret = pthread_mutex_lock(&mu->lock);
         SuccessOrExit(ret);

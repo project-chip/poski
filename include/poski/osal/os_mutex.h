@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_MUTEX_H
-#define CHIP_OS_MUTEX_H
+#ifndef POSKI_OS_MUTEX_H
+#define POSKI_OS_MUTEX_H
 
 #include "poski/osal/os_types.h"
 
@@ -40,7 +40,7 @@ extern "C" {
  *
  * @return N/A
  */
-chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mutex);
+pos_error_t pos_mutex_init(struct pos_mutex * mutex);
 
 /**
  * @brief Lock a mutex.
@@ -54,13 +54,13 @@ chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mutex);
  *
  * @param mutex Address of the mutex.
  * @param timeout Waiting period to lock the mutex (in milliseconds),
- *                or one of the special values CHIP_OS_TIME_NO_WAIT and CHIP_OS_TIME_FOREVER.
+ *                or one of the special values POS_TIME_NO_WAIT and POS_TIME_FOREVER.
  *
- * @retval CHIP_OS_OK Mutex locked.
- * @retval CHIP_OS_EBUSY Returned without waiting.
- * @retval CHIP_OS_TIMEOUT Waiting period timed out.
+ * @retval POS_OK Mutex locked.
+ * @retval POS_EBUSY Returned without waiting.
+ * @retval POS_TIMEOUT Waiting period timed out.
  */
-chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mutex, chip_os_time_t timeout);
+pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout);
 
 /**
  * @brief Unlock a mutex.
@@ -76,10 +76,10 @@ chip_os_error_t chip_os_mutex_take(struct chip_os_mutex * mutex, chip_os_time_t 
  *
  * @return N/A
  */
-chip_os_error_t chip_os_mutex_give(struct chip_os_mutex * mutex);
+pos_error_t pos_mutex_give(struct pos_mutex * mutex);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_MUTEX_H */
+#endif /* POSKI_OS_MUTEX_H */

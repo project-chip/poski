@@ -24,10 +24,10 @@
 #define TASK0_ARG 55
 #define TASK1_ARG 66
 
-#define TEST_TASK_PRIORITY CHIP_OS_PRIORITY_APP
+#define TEST_TASK_PRIORITY POS_PRIORITY_APP
 #define TEST_TASK_STACK_SIZE 1028
 
-static struct chip_os_task s_task[2];
+static struct pos_task s_task[2];
 static int s_task_arg[2] = { TASK0_ARG, TASK1_ARG };
 
 void * task0_run(void * args)
@@ -36,7 +36,7 @@ void * task0_run(void * args)
 
     while (1)
     {
-        chip_os_task_yield();
+        pos_task_yield();
     }
 
     return NULL;
@@ -49,7 +49,7 @@ void * task1_run(void * args)
 
     while (i--)
     {
-        chip_os_task_yield();
+        pos_task_yield();
     }
 
     printf("All tests passed\n");
@@ -61,30 +61,30 @@ void * task1_run(void * args)
 /**
  * Unit test for initializing a task.
  *
- * int chip_os_task_init(struct chip_os_task *t, const char *name, chip_os_task_func_t func,
- *                  void *arg, uint8_t prio, chip_os_time_t sanity_itvl,
- *                  chip_os_stack_t *stack_bottom, uint16_t stack_size)
+ * int pos_task_init(struct pos_task *t, const char *name, pos_task_func_t func,
+ *                  void *arg, uint8_t prio, pos_time_t sanity_itvl,
+ *                  pos_stack_t *stack_bottom, uint16_t stack_size)
  *
  */
 int test_init(void)
 {
     int err;
-    err = chip_os_task_init(NULL, "Null task", NULL, NULL, TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
-    VerifyOrQuit(err, "chip_os_task_init accepted NULL parameters.");
+    err = pos_task_init(NULL, "Null task", NULL, NULL, TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
+    VerifyOrQuit(err, "pos_task_init accepted NULL parameters.");
 
-    err = chip_os_task_init(&s_task[0], "s_task[0]", task0_run, &s_task_arg[0], TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
-    SuccessOrQuit(err, "chip_os_task_init failed.");
+    err = pos_task_init(&s_task[0], "s_task[0]", task0_run, &s_task_arg[0], TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
+    SuccessOrQuit(err, "pos_task_init failed.");
 
-    err = chip_os_task_init(&s_task[1], "s_task[1]", task1_run, &s_task_arg[1], TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
+    err = pos_task_init(&s_task[1], "s_task[1]", task1_run, &s_task_arg[1], TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
 
     return err;
 }
 
 int main(void)
 {
-    SuccessOrQuit(test_init(), "Failed: chip_os_task_init");
+    SuccessOrQuit(test_init(), "Failed: pos_task_init");
 
-    chip_os_sched_start();
+    pos_sched_start();
 
     /* main never returns */
 
