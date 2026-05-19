@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, work ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  make-build:
+    name: Make Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache
+
+      - name: Build with Make
+        run: make
+
+      - name: Run standard tests with Make
+        run: make test
+
+      - name: Run gtests with Make
+        run: make gtest
+
+  bazel-build:
+    name: Bazel Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache
+
+      - name: Build POSIX library with Bazel
+        run: bazel build //:osal
+
+      - name: Run standard tests with Bazel
+        run: bazel test //:test
+
+      - name: Run gtests with Bazel
+        run: bazel test //:gtest

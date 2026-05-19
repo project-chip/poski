@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# Local Bazel config
+user.bazelrc
+
+# Bazel outputs and binaries
+/bazel-*
+/bazel
+/MODULE.bazel.lock

@@ -1,0 +1,5 @@
+# Make dependency file
+.depend
+
+# Google Test download folder
+googletest-*/

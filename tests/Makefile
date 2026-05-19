@@ -97,7 +97,6 @@ DEFINES =                   \
 CFLAGS =                    \
     $(INCLUDES) $(DEFINES)  \
     $(TARGET_CCFLAGS)       \
-    -Wa,--gsframe=no        \
     $(NULL)
 
 LDFLAGS = $(TARGET_LDFLAGS)
