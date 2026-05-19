@@ -95,8 +95,8 @@ cc_test(
 )
 
 cc_test(
-    name = "test_ring",
-    srcs = ["tests/test_ring.cpp"],
+    name = "test_os_ring",
+    srcs = ["tests/test_os_ring.cpp"],
     deps = [
         ":osal",
         ":test_util",
@@ -199,10 +199,10 @@ cc_test(
 )
 
 cc_test(
-    name = "test_ring_gtest",
+    name = "test_os_ring_gtest",
     srcs = [
         "tests/test_gtest_wrapper.cpp",
-        "tests/test_ring.cpp",
+        "tests/test_os_ring.cpp",
     ],
     copts = [
         "-Dmain=test_ring_main",
@@ -224,7 +224,12 @@ test_suite(
         ":test_os_mutex",
         ":test_os_sem",
         ":test_os_timer",
-        ":test_ring",
+        ":test_os_ring",
+        ":test_os_task_cpp",
+        ":test_os_queue_cpp",
+        ":test_os_mutex_cpp",
+        ":test_os_semaphore_cpp",
+        ":test_os_timer_cpp",
     ],
 )
 
@@ -236,7 +241,120 @@ test_suite(
         ":test_os_mutex_gtest",
         ":test_os_sem_gtest",
         ":test_os_timer_gtest",
-        ":test_ring_gtest",
+        ":test_os_ring_gtest",
+        ":test_os_task_cpp_gtest",
+        ":test_os_queue_cpp_gtest",
+        ":test_os_mutex_cpp_gtest",
+        ":test_os_semaphore_cpp_gtest",
+        ":test_os_timer_cpp_gtest",
+        ":test_os_ring_cpp_gtest",
+    ],
+)
+
+# C++ Standard Tests (C-style main)
+cc_test(
+    name = "test_os_task_cpp",
+    srcs = ["tests/test_os_task_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_queue_cpp",
+    srcs = ["tests/test_os_queue_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_mutex_cpp",
+    srcs = ["tests/test_os_mutex_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_semaphore_cpp",
+    srcs = ["tests/test_os_semaphore_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_timer_cpp",
+    srcs = ["tests/test_os_timer_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+# C++ Native GTests (direct com_google_googletest)
+cc_test(
+    name = "test_os_task_cpp_gtest",
+    srcs = ["tests/test_os_task_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_queue_cpp_gtest",
+    srcs = ["tests/test_os_queue_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_mutex_cpp_gtest",
+    srcs = ["tests/test_os_mutex_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_semaphore_cpp_gtest",
+    srcs = ["tests/test_os_semaphore_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_timer_cpp_gtest",
+    srcs = ["tests/test_os_timer_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_ring_cpp_gtest",
+    srcs = ["tests/test_os_ring_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

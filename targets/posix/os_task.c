@@ -93,7 +93,7 @@ pos_error_t pos_task_remove(struct pos_task * t)
     ret = (t == NULL) ? EINVAL : POS_OK;
     SuccessOrExit(ret);
 
-    ret = (t->handle) ? EINVAL : POS_OK;
+    ret = (!t->handle) ? EINVAL : POS_OK;
     SuccessOrExit(ret);
 
     ret = pthread_cancel(t->handle);
@@ -127,14 +127,13 @@ void pos_task_yield(void)
 
 void pos_task_sleep_ms(pos_time_t ms)
 {
-    struct timespec sleep_time;
-    int s = ms / 1000;
+    struct timespec sleep_time, remaining;
+    sleep_time.tv_sec  = ms / 1000;
+    sleep_time.tv_nsec = (ms % 1000) * 1000000;
 
-    ms -= s * 1000;
-    sleep_time.tv_sec  = s;
-    sleep_time.tv_nsec = ms * 1000000;
-
-    nanosleep(&sleep_time, NULL);
+    while (nanosleep(&sleep_time, &remaining) == -1 && errno == EINTR) {
+        sleep_time = remaining;
+    }
 }
 
 void pos_task_sleep(pos_time_t ticks)

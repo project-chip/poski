@@ -16,14 +16,16 @@
  *    limitations under the License.
  */
 
-#ifndef __Ring_h__
-#define __Ring_h__
+#ifndef POSKI_CPP_OS_RING_H
+#define POSKI_CPP_OS_RING_H
 
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
-class Ring
+namespace poski {
+
+class OsRing
 {
     uint8_t * _buffer;
     uint16_t _itemSize;
@@ -34,9 +36,9 @@ class Ring
 public:
     typedef uint16_t item_size_t;
 
-    Ring(uint16_t itemSize, uint16_t itemCount)
+    OsRing(uint16_t itemSize, uint16_t itemCount)
     {
-        assert(!((itemCount - 1) & itemCount)); // ERROR: Ring item count must be power of two.
+        assert(itemCount > 0 && !((itemCount - 1) & itemCount)); // ERROR: OsRing item count must be power of two and > 0.
 
         _readIndex  = 0;
         _writeIndex = 0;
@@ -45,7 +47,11 @@ public:
         _buffer     = new uint8_t[itemSize * itemCount];
     }
 
-    ~Ring()
+    // Prevent copy and assignment (Rule of Three)
+    OsRing(const OsRing&) = delete;
+    OsRing& operator=(const OsRing&) = delete;
+
+    ~OsRing()
     {
         if (_buffer)
         {
@@ -87,4 +93,6 @@ private:
     unsigned inc(unsigned index) { return index + 1; }
 };
 
-#endif // __Ring_h__
+} // namespace poski
+
+#endif // POSKI_CPP_OS_RING_H

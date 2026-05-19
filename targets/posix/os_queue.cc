@@ -42,15 +42,7 @@ void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, v
 bool pos_queue_is_empty(struct pos_queue * msgq)
 {
     ring_t * q = static_cast<ring_t *>(msgq->q);
-
-    if (q->size())
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return (q->size() == 0);
 }
 
 int pos_queue_inited(const struct pos_queue * msgq)
@@ -77,6 +69,16 @@ pos_error_t pos_queue_get(struct pos_queue * msgq, void * data, pos_time_t tmo)
     bool success = q->get(data, tmo);
 
     return (success) ? POS_OK : POS_TIMEOUT;
+}
+
+pos_error_t pos_queue_deinit(struct pos_queue * msgq)
+{
+    if (msgq && msgq->q)
+    {
+        delete static_cast<ring_t *>(msgq->q);
+        msgq->q = nullptr;
+    }
+    return POS_OK;
 }
 
 } // extern "C"
