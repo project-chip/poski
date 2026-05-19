@@ -133,9 +133,16 @@ TEST_OBJS += $(patsubst %.cc,%.o,$(filter %.cc, $(SRCS)))
 TEST_OBJS += $(patsubst %.cpp,%.o,$(filter %.cpp, $(SRCS)))
 TEST_OBJS += $(patsubst %.S, %.o,$(filter %.S,  $(SRCS)))
 
-### ===== Rules =====
+ifeq ($(TARGET_OSAL),freertos)
+LIB_NAME = libosal_freertos.a
+else
+LIB_NAME = libosal.a
+endif
 
-all: depend                       \
+$(LIB_NAME): $(OBJS)
+	$(AR) rcs $@ $^
+
+all: $(LIB_NAME) depend                       \
      test_os_task.$(TARGET_EXT)   \
      test_os_queue.$(TARGET_EXT)  \
      test_os_mutex.$(TARGET_EXT)  \
@@ -348,7 +355,7 @@ show_objs:
 ### ===== Clean =====
 clean:
 	@echo "Cleaning artifacts."
-	rm -rf *~ .depend $(OBJS) *.o *.exe $(GTEST_DIR)
+	rm -rf *~ .depend $(OBJS) *.o *.exe *.a $(GTEST_DIR)
 
 
 ### ===== Dependencies =====

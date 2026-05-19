@@ -33,6 +33,26 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
+cc_library(
+    name = "osal_freertos",
+    srcs = glob([
+        "targets/freertos/*.c",
+    ]),
+    hdrs = glob([
+        "include/**/*.h",
+        "targets/freertos/**/*.h",
+    ]),
+    includes = [
+        "include",
+        "targets/freertos",
+        "targets/freertos/config/posix",
+    ],
+    deps = [
+        "@freertos//:freertos_kernel",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 alias(
     name = "osal",
     actual = ":osal_posix",
@@ -41,6 +61,11 @@ alias(
 alias(
     name = "zephyr",
     actual = ":osal_zephyr",
+)
+
+alias(
+    name = "freertos",
+    actual = ":osal_freertos",
 )
 
 cc_library(
