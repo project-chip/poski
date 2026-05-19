@@ -71,4 +71,14 @@ pos_error_t pos_queue_get(struct pos_queue * msgq, void * data, pos_time_t tmo)
     return (success) ? POS_OK : POS_TIMEOUT;
 }
 
+pos_error_t pos_queue_deinit(struct pos_queue * msgq)
+{
+    if (msgq && msgq->q)
+    {
+        delete static_cast<ring_t *>(msgq->q);
+        msgq->q = nullptr;
+    }
+    return POS_OK;
+}
+
 } // extern "C"

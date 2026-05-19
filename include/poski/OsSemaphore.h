@@ -27,20 +27,20 @@ namespace poski {
 class OsSemaphore {
 public:
     // Constructor initializes and optionally takes the semaphore immediately (RAII)
-    explicit OsSemaphore(uint16_t initialTokens = 0, bool take_on_construction = true, pos_time_t timeout = POS_TIME_FOREVER)
-        : taken_(false) {
+    explicit OsSemaphore(uint16_t initialTokens = 0, bool take_on_construction = false, pos_time_t timeout = POS_TIME_FOREVER)
+        : taken_by_construction_(false) {
         pos_error_t err = pos_sem_init(&sem_, initialTokens);
         assert(err == POS_OK);
         if (take_on_construction) {
             err = pos_sem_take(&sem_, timeout);
             assert(err == POS_OK);
-            taken_ = true;
+            taken_by_construction_ = true;
         }
     }
 
     // Destructor gives/increments the semaphore automatically if it was taken by constructor
     ~OsSemaphore() {
-        if (taken_) {
+        if (taken_by_construction_) {
             pos_error_t err = pos_sem_give(&sem_);
             assert(err == POS_OK);
         }
@@ -51,26 +51,18 @@ public:
     OsSemaphore& operator=(const OsSemaphore&) = delete;
 
     pos_error_t Take(pos_time_t timeout = POS_TIME_FOREVER) {
-        pos_error_t err = pos_sem_take(&sem_, timeout);
-        if (err == POS_OK) {
-            taken_ = true;
-        }
-        return err;
+        return pos_sem_take(&sem_, timeout);
     }
 
     pos_error_t Give() {
-        pos_error_t err = pos_sem_give(&sem_);
-        if (err == POS_OK) {
-            taken_ = false;
-        }
-        return err;
+        return pos_sem_give(&sem_);
     }
 
     struct pos_sem* GetNative() { return &sem_; }
 
 private:
     struct pos_sem sem_;
-    bool taken_;
+    bool taken_by_construction_;
 };
 
 } // namespace poski

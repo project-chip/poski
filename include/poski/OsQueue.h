@@ -33,7 +33,10 @@ public:
         assert(err == POS_OK);
     }
 
-    ~OsQueue() = default;
+    ~OsQueue() {
+        pos_error_t err = pos_queue_deinit(&queue_);
+        assert(err == POS_OK);
+    }
     OsQueue(const OsQueue&) = delete;
     OsQueue& operator=(const OsQueue&) = delete;
 

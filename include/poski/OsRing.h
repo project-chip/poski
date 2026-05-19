@@ -38,7 +38,7 @@ public:
 
     OsRing(uint16_t itemSize, uint16_t itemCount)
     {
-        assert(!((itemCount - 1) & itemCount)); // ERROR: OsRing item count must be power of two.
+        assert(itemCount > 0 && !((itemCount - 1) & itemCount)); // ERROR: OsRing item count must be power of two and > 0.
 
         _readIndex  = 0;
         _writeIndex = 0;
@@ -46,6 +46,10 @@ public:
         _itemCount  = itemCount;
         _buffer     = new uint8_t[itemSize * itemCount];
     }
+
+    // Prevent copy and assignment (Rule of Three)
+    OsRing(const OsRing&) = delete;
+    OsRing& operator=(const OsRing&) = delete;
 
     ~OsRing()
     {

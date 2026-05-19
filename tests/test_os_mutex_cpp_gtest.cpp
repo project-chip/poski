@@ -77,11 +77,9 @@ static void * task2_run(void * arg)
 }
 
 TEST(OsMutexCpp, BasicLockUnlock) {
-    poski::OsMutex mutex; // Locks immediately in constructor
-    // Since it's locked, trying to lock it again with NO_WAIT should fail
-    // Wait! Under POSIX recursive mutex, locking it again by the SAME thread succeeds!
-    // But trying to unlock it should succeed.
-    EXPECT_EQ(mutex.Unlock(), POS_OK);
+    poski::OsMutex mutex(false); // Construct unlocked
+    EXPECT_EQ(mutex.Lock(POS_TIME_NO_WAIT), POS_OK); // Lock manually
+    EXPECT_EQ(mutex.Unlock(), POS_OK); // Unlock manually
 }
 
 TEST(OsMutexCpp, BasicRAIIScopedLock) {

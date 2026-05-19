@@ -94,6 +94,16 @@ bool pos_queue_is_empty(struct pos_queue * msgq);
 
 void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, void * data);
 
+/**
+ * @brief Deinitialize/Free a queue.
+ *
+ * @param msgq Pointer to struct pos_queue.
+ *
+ * @retval POS_OK Queue successfully deinitialized.
+ * @retval POS_ERROR Deinitialization failed.
+ */
+pos_error_t pos_queue_deinit(struct pos_queue * msgq);
+
 #ifdef __cplusplus
 }
 #endif

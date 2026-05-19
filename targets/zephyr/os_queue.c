@@ -85,3 +85,12 @@ void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, v
     msgq->sig_cb = signal_cb;
     msgq->sig_arg = data;
 }
+
+pos_error_t pos_queue_deinit(struct pos_queue * msgq)
+{
+    if (msgq && msgq->buffer) {
+        free(msgq->buffer);
+        msgq->buffer = NULL;
+    }
+    return POS_OK;
+}

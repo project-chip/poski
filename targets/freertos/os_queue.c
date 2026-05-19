@@ -64,3 +64,13 @@ pos_error_t pos_queue_put(struct pos_queue * queue, void * data)
 
     return POS_OK;
 }
+
+pos_error_t pos_queue_deinit(struct pos_queue * queue)
+{
+    if (queue && queue->handle)
+    {
+        vQueueDelete(queue->handle);
+        queue->handle = NULL;
+    }
+    return POS_OK;
+}
