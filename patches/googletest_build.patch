@@ -5,31 +5,3 @@
 +
  # Copyright 2017 Google Inc.
  # All Rights Reserved.
-@@ -39,4 +39,8 @@
- config_setting(
-     name = "qnx",
-     constraint_values = ["@platforms//os:qnx"],
- )
-+config_setting(
-+    name = "linux",
-+    constraint_values = ["@platforms//os:linux"],
-+)
-@@ -111,4 +111,5 @@
-     copts = select({
-         ":qnx": [],
-         ":windows": [],
-+        ":linux": ["-pthread", "-Wa,--gsframe=no"],
-         "//conditions:default": ["-pthread"],
-@@ -184,8 +184,12 @@
- cc_library(
-     name = "gtest_main",
-     srcs = ["googlemock/src/gmock_main.cc"],
-     features = select({
-         ":windows": ["windows_export_all_symbols"],
-         "//conditions:default": [],
-     }),
-+    copts = select({
-+        ":linux": ["-Wa,--gsframe=no"],
-+        "//conditions:default": [],
-+    }),
-     deps = [":gtest"],
