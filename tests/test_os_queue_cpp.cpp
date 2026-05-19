@@ -136,8 +136,10 @@ int main(void)
     s_task1_queue = new poski::OsQueue<my_msg_t, TEST_QUEUE_SIZE>();
     s_task2_queue = new poski::OsQueue<my_msg_t, TEST_QUEUE_SIZE>();
 
-    s_task1.Start("task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
-    s_task2.Start("task2", task2_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
+    SuccessOrQuit(s_task1.Start("task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE),
+                  "OsTask::Start: failed to start task1.");
+    SuccessOrQuit(s_task2.Start("task2", task2_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE),
+                  "OsTask::Start: failed to start task2.");
 
     poski::OsTask::SchedStart();
 

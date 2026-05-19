@@ -65,6 +65,7 @@ int test_init(void)
     SuccessOrQuit(err, "OsTask::Start failed.");
 
     err = s_task[1].Start("s_task[1]", task1_run, &s_task_arg[1], TEST_TASK_PRIORITY, TEST_TASK_STACK_SIZE);
+    SuccessOrQuit(err, "OsTask::Start failed.");
 
     return err;
 }

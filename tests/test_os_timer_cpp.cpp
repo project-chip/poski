@@ -88,6 +88,8 @@ void * task1_run(void * arg)
     {
         poski::OsTask::Yield();
     }
+
+    return nullptr;
 }
 
 void test_time_convert(pos_time_t truth_ticks, pos_time_t truth_ms)

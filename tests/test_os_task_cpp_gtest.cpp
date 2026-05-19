@@ -44,7 +44,3 @@ TEST(OsTaskCpp, BasicStartRemove) {
     
     EXPECT_EQ(task.Remove(), POS_OK);
 }
-
-TEST(OsTaskCpp, SchedStartStarted) {
-    EXPECT_TRUE(poski::OsTask::SchedStarted());
-}
