@@ -1,5 +1,7 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
 cc_library(
-    name = "osal",
+    name = "osal_posix",
     srcs = glob([
         "targets/posix/*.c",
         "targets/posix/*.cc",
@@ -29,6 +31,16 @@ cc_library(
         "targets/zephyr",
     ],
     visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "osal",
+    actual = ":osal_posix",
+)
+
+alias(
+    name = "zephyr",
+    actual = ":osal_zephyr",
 )
 
 cc_library(
@@ -201,6 +213,30 @@ cc_test(
         ":osal",
         ":test_util",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+test_suite(
+    name = "test",
+    tests = [
+        ":test_os_task",
+        ":test_os_queue",
+        ":test_os_mutex",
+        ":test_os_sem",
+        ":test_os_timer",
+        ":test_ring",
+    ],
+)
+
+test_suite(
+    name = "gtest",
+    tests = [
+        ":test_os_task_gtest",
+        ":test_os_queue_gtest",
+        ":test_os_mutex_gtest",
+        ":test_os_sem_gtest",
+        ":test_os_timer_gtest",
+        ":test_ring_gtest",
     ],
 )
 

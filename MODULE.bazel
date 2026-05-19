@@ -1,0 +1,14 @@
+module(name = "osal", version = "0.0.1")
+
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "googletest", version = "1.17.0", repo_name = "com_google_googletest")
+
+single_version_override(
+    module_name = "googletest",
+    version = "1.17.0",
+    patches = [
+        "//patches:googletest_build.patch",
+        "//patches:googletest_module.patch",
+    ],
+    patch_strip = 1,
+)
