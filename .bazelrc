@@ -1,2 +1,2 @@
 build --symlink_prefix=/
-build --copt=-Wa,--gsframe=no
+try-import %workspace%/user.bazelrc
