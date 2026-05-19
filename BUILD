@@ -90,3 +90,118 @@ cc_test(
         ":test_util",
     ],
 )
+
+cc_test(
+    name = "test_os_task_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_task.c",
+    ],
+    copts = [
+        "-Dmain=test_os_task_main",
+        "-DTEST_NAME=Task",
+        "-DTEST_MAIN=test_os_task_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_queue_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_queue.c",
+    ],
+    copts = [
+        "-Dmain=test_os_queue_main",
+        "-DTEST_NAME=Queue",
+        "-DTEST_MAIN=test_os_queue_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_mutex_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_mutex.c",
+    ],
+    copts = [
+        "-Dmain=test_os_mutex_main",
+        "-DTEST_NAME=Mutex",
+        "-DTEST_MAIN=test_os_mutex_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_sem_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_sem.c",
+    ],
+    copts = [
+        "-Dmain=test_os_sem_main",
+        "-DTEST_NAME=Sem",
+        "-DTEST_MAIN=test_os_sem_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_timer_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_timer.c",
+    ],
+    copts = [
+        "-Dmain=test_os_timer_main",
+        "-DTEST_NAME=Timer",
+        "-DTEST_MAIN=test_os_timer_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_ring_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_ring.cpp",
+    ],
+    copts = [
+        "-Dmain=test_ring_main",
+        "-DTEST_NAME=Ring",
+        "-DTEST_MAIN=test_ring_main",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+

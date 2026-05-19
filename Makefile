@@ -5,5 +5,8 @@ all:
 test:
 	make -C tests test
 
+gtest:
+	make -C tests test_gtest
+
 clean:
 	make -C tests clean
