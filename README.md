@@ -283,8 +283,8 @@ $ bazel build //:osal
 
 To build only the **FreeRTOS** library target (`osal_freertos` / `freertos` alias):
 ```bash
-# Builds osal_freertos. Note: Requires injecting the FreeRTOS headers include paths
-$ bazel build //:freertos --copt="-I/path/to/FreeRTOS/Source/include"
+# Builds osal_freertos.
+$ bazel build //:freertos
 ```
 
 To build the POSIX/Linux test binaries:
