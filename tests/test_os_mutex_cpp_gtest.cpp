@@ -83,12 +83,15 @@ TEST(OsMutexCpp, BasicLockUnlock) {
 }
 
 TEST(OsMutexCpp, BasicRAIIScopedLock) {
-    struct pos_mutex raw_mutex;
-    EXPECT_EQ(pos_mutex_init(&raw_mutex), POS_OK);
-    
     {
         poski::OsMutex lock(true); // Constructor locks it
+        EXPECT_EQ(lock.Unlock(), POS_OK);
+        EXPECT_EQ(lock.Lock(POS_TIME_NO_WAIT), POS_OK);
     } // Destructor unlocks it
+
+    poski::OsMutex relock(false);
+    EXPECT_EQ(relock.Lock(POS_TIME_NO_WAIT), POS_OK);
+    EXPECT_EQ(relock.Unlock(), POS_OK);
 }
 
 TEST(OsMutexCpp, ThreadConcurrency) {

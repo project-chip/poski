@@ -18,29 +18,53 @@
 
 #include <gtest/gtest.h>
 #include <poski/OsTask.h>
+#include <atomic>
 
-static int s_task_run_count = 0;
+static std::atomic<int> s_task_run_count{0};
+
+struct DummyTaskArgs
+{
+    std::atomic<int> counter;
+};
 
 static void * dummy_task_run(void * arg)
 {
-    int* counter = (int*)arg;
-    *counter = 42;
-    s_task_run_count++;
+    DummyTaskArgs * task_args = static_cast<DummyTaskArgs *>(arg);
+    task_args->counter.store(42);
+    s_task_run_count.fetch_add(1);
+
+    // Keep the task alive until Remove() cancels it so the test does not race
+    // with thread exit on platforms where removal maps to pthread_cancel().
+    while (true)
+    {
+        poski::OsTask::Sleep(1);
+    }
+
     return NULL;
 }
 
 TEST(OsTaskCpp, BasicStartRemove) {
     poski::OsTask task;
-    int counter = 0;
-    s_task_run_count = 0;
+    DummyTaskArgs args = {};
+    args.counter.store(0);
+    s_task_run_count.store(0);
 
-    EXPECT_EQ(task.Start("dummy", dummy_task_run, &counter, 1, 1028), POS_OK);
-    
-    // Wait for the task to run and yield/complete
-    poski::OsTask::Sleep(10);
-    
-    EXPECT_EQ(counter, 42);
-    EXPECT_EQ(s_task_run_count, 1);
-    
+    EXPECT_EQ(task.Start("dummy", dummy_task_run, &args, 1, 1028), POS_OK);
+
+    bool task_ran = false;
+    for (int i = 0; i < 100; ++i)
+    {
+        if (args.counter.load() == 42 && s_task_run_count.load() == 1)
+        {
+            task_ran = true;
+            break;
+        }
+        poski::OsTask::Sleep(1);
+    }
+
+    EXPECT_TRUE(task_ran);
+    EXPECT_EQ(args.counter.load(), 42);
+    EXPECT_EQ(s_task_run_count.load(), 1);
+
     EXPECT_EQ(task.Remove(), POS_OK);
 }
