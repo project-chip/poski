@@ -28,12 +28,8 @@ jobs:
         run: make gtest
 
   bazel-build:
-    name: Bazel Build & Test (v${{ matrix.bazel-version }})
+    name: Bazel Build & Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        bazel-version: [ '6.4.0', 'latest' ]
     steps:
       - uses: actions/checkout@v4
 
@@ -41,9 +37,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential ccache
-
-      - name: Pin Bazel version
-        run: echo "${{ matrix.bazel-version }}" > .bazelversion
 
       - name: Build POSIX library with Bazel
         run: bazel build //:osal
