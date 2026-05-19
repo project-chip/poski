@@ -258,8 +258,18 @@ brew install make ccache bazel gtest
 
 #### Make
 
-```
+To build only the **POSIX/Linux** library target (`libosal.a`) and tests:
+```bash
 $ make
+```
+
+To build the **FreeRTOS** static library target (`libosal_freertos.a`) and firmware hex binaries (requires Nordic SDK):
+```bash
+# Export the path to Nordic SDK
+$ export NRF5_SDK_ROOT=/path/to/nRF5_SDK_17.1.0_ddde560
+
+# Compile FreeRTOS library and hex targets
+$ PLATFORM=nrf52840 make
 ```
 
 #### Bazel
@@ -269,6 +279,12 @@ By default, `bazel build //:all` will attempt to build targets for all supported
 To build only the **POSIX/Linux** library target:
 ```bash
 $ bazel build //:osal
+```
+
+To build only the **FreeRTOS** library target (`osal_freertos` / `freertos` alias):
+```bash
+# Builds osal_freertos. Note: Requires injecting the FreeRTOS headers include paths
+$ bazel build //:freertos --copt="-I/path/to/FreeRTOS/Source/include"
 ```
 
 To build the POSIX/Linux test binaries:

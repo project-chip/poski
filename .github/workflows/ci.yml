@@ -46,3 +46,7 @@ jobs:
 
       - name: Run gtests with Bazel
         run: bazel test //:gtest
+
+      - name: Build FreeRTOS POSIX-simulation library with Bazel
+        run: bazel build //:freertos
+

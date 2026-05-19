@@ -12,3 +12,28 @@ single_version_override(
     ],
     patch_strip = 1,
 )
+# Bzlmod HTTP Archive rules for FreeRTOS Kernel
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "freertos",
+    urls = ["https://github.com/FreeRTOS/FreeRTOS-Kernel/archive/refs/tags/V10.4.3.tar.gz"],
+    integrity = "sha256-bihGYHf/Qt4dXctnnIzs9GNw/Z6OhuueJ67vhePN1Pk=",
+    strip_prefix = "FreeRTOS-Kernel-10.4.3",
+    build_file_content = """
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "freertos_kernel",
+    hdrs = glob([
+        "include/*.h",
+        "portable/ThirdParty/GCC/Posix/*.h",
+    ]),
+    includes = [
+        "include",
+        "portable/ThirdParty/GCC/Posix",
+    ],
+    visibility = ["//visibility:public"],
+)
+"""
+)
