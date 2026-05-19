@@ -40,7 +40,7 @@ exit:
     return (ret) ? POS_BAD_MUTEX : POS_OK;
 }
 
-pos_error_t pos_mutex_give(struct pos_mutex * mu)
+pos_error_t pos_mutex_unlock(struct pos_mutex * mu)
 {
     int ret = (pthread_mutex_unlock(&mu->lock));
     SuccessOrExit(ret);
@@ -49,7 +49,7 @@ exit:
     return map_posix_to_osal_error(ret);
 }
 
-pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
+pos_error_t pos_mutex_lock(struct pos_mutex * mu, pos_time_t timeout)
 {
     int ret;
 

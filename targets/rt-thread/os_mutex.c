@@ -37,7 +37,7 @@ pos_error_t pos_mutex_init(struct pos_mutex * mu)
     return (mu->handle == NULL) ? POS_BAD_MUTEX : POS_OK;
 }
 
-pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
+pos_error_t pos_mutex_lock(struct pos_mutex * mu, pos_time_t timeout)
 {
     rt_err_t ret;
 
@@ -53,7 +53,7 @@ pos_error_t pos_mutex_take(struct pos_mutex * mu, pos_time_t timeout)
     return ret == RT_EOK ? POS_OK : POS_BAD_MUTEX;
 }
 
-pos_error_t pos_mutex_give(struct pos_mutex * mu)
+pos_error_t pos_mutex_unlock(struct pos_mutex * mu)
 {
     assert(!pos_hw_in_isr());
 

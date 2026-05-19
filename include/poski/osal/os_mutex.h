@@ -60,7 +60,7 @@ pos_error_t pos_mutex_init(struct pos_mutex * mutex);
  * @retval POS_EBUSY Returned without waiting.
  * @retval POS_TIMEOUT Waiting period timed out.
  */
-pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout);
+pos_error_t pos_mutex_lock(struct pos_mutex * mutex, pos_time_t timeout);
 
 /**
  * @brief Unlock a mutex.
@@ -76,7 +76,7 @@ pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout);
  *
  * @return N/A
  */
-pos_error_t pos_mutex_give(struct pos_mutex * mutex);
+pos_error_t pos_mutex_unlock(struct pos_mutex * mutex);
 
 #ifdef __cplusplus
 }

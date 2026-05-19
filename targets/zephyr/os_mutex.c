@@ -24,7 +24,7 @@ pos_error_t pos_mutex_init(struct pos_mutex * mutex)
     return POS_OK;
 }
 
-pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout)
+pos_error_t pos_mutex_lock(struct pos_mutex * mutex, pos_time_t timeout)
 {
     k_timeout_t tmo;
     if (timeout == POS_TIME_FOREVER) {
@@ -45,7 +45,7 @@ pos_error_t pos_mutex_take(struct pos_mutex * mutex, pos_time_t timeout)
     }
 }
 
-pos_error_t pos_mutex_give(struct pos_mutex * mutex)
+pos_error_t pos_mutex_unlock(struct pos_mutex * mutex)
 {
     int err = k_mutex_unlock(&mutex->mutex);
     return (err == 0) ? POS_OK : POS_ERROR;
