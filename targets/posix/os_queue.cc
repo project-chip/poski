@@ -24,22 +24,22 @@ extern "C" {
 
 typedef RingPthread ring_t;
 
-chip_os_error_t chip_os_queue_init(struct chip_os_queue * msgq, size_t msg_size, size_t max_msgs)
+pos_error_t pos_queue_init(struct pos_queue * msgq, size_t msg_size, size_t max_msgs)
 {
     msgq->q       = new ring_t(msg_size, max_msgs);
     msgq->sig_cb  = NULL;
     msgq->sig_arg = NULL;
 
-    return (msgq->q) ? CHIP_OS_OK : CHIP_OS_ENOMEM;
+    return (msgq->q) ? POS_OK : POS_ENOMEM;
 }
 
-void chip_os_queue_set_signal_cb(struct chip_os_queue * msgq, chip_os_signal_fn signal_cb, void * data)
+void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, void * data)
 {
     msgq->sig_cb  = signal_cb;
     msgq->sig_arg = data;
 }
 
-bool chip_os_queue_is_empty(struct chip_os_queue * msgq)
+bool pos_queue_is_empty(struct pos_queue * msgq)
 {
     ring_t * q = static_cast<ring_t *>(msgq->q);
 
@@ -53,12 +53,12 @@ bool chip_os_queue_is_empty(struct chip_os_queue * msgq)
     }
 }
 
-int chip_os_queue_inited(const struct chip_os_queue * msgq)
+int pos_queue_inited(const struct pos_queue * msgq)
 {
     return (msgq->q != NULL);
 }
 
-chip_os_error_t chip_os_queue_put(struct chip_os_queue * msgq, void * data)
+pos_error_t pos_queue_put(struct pos_queue * msgq, void * data)
 {
     ring_t * q = static_cast<ring_t *>(msgq->q);
     q->put(data);
@@ -68,15 +68,15 @@ chip_os_error_t chip_os_queue_put(struct chip_os_queue * msgq, void * data)
         msgq->sig_cb(msgq->sig_arg);
     }
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_queue_get(struct chip_os_queue * msgq, void * data, chip_os_time_t tmo)
+pos_error_t pos_queue_get(struct pos_queue * msgq, void * data, pos_time_t tmo)
 {
     ring_t * q   = static_cast<ring_t *>(msgq->q);
     bool success = q->get(data, tmo);
 
-    return (success) ? CHIP_OS_OK : CHIP_OS_TIMEOUT;
+    return (success) ? POS_OK : POS_TIMEOUT;
 }
 
 } // extern "C"

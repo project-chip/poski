@@ -18,35 +18,35 @@
  */
 
 #include <assert.h>
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-chip_os_error_t chip_os_sem_init(struct chip_os_sem * sem, uint16_t tokens)
+pos_error_t pos_sem_init(struct pos_sem * sem, uint16_t tokens)
 {
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     sem->handle = xSemaphoreCreateCounting(128, tokens);
     assert(sem->handle);
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeout)
+pos_error_t pos_sem_take(struct pos_sem * sem, pos_time_t timeout)
 {
     BaseType_t woken;
     BaseType_t ret;
 
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(sem->handle);
 
-    if (chip_hw_in_isr())
+    if (pos_hw_in_isr())
     {
         assert(timeout == 0);
         ret = xSemaphoreTakeFromISR(sem->handle, &woken);
@@ -57,22 +57,22 @@ chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeou
         ret = xSemaphoreTake(sem->handle, timeout);
     }
 
-    return ret == pdPASS ? CHIP_OS_OK : CHIP_OS_TIMEOUT;
+    return ret == pdPASS ? POS_OK : POS_TIMEOUT;
 }
 
-chip_os_error_t chip_os_sem_give(struct chip_os_sem * sem)
+pos_error_t pos_sem_give(struct pos_sem * sem)
 {
     BaseType_t ret;
     BaseType_t woken;
 
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(sem->handle);
 
-    if (chip_hw_in_isr())
+    if (pos_hw_in_isr())
     {
         ret = xSemaphoreGiveFromISR(sem->handle, &woken);
         portYIELD_FROM_ISR(woken);
@@ -83,5 +83,5 @@ chip_os_error_t chip_os_sem_give(struct chip_os_sem * sem)
     }
 
     assert(ret == pdPASS);
-    return CHIP_OS_OK;
+    return POS_OK;
 }

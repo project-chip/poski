@@ -44,6 +44,6 @@
     }                                     \
   } while (false)
 
-chip_os_error_t map_posix_to_osal_error(int ret);
+pos_error_t map_posix_to_osal_error(int ret);
 
 #endif // _OS_UTILS_H

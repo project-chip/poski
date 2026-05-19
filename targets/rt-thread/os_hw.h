@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <rtthread.h>
 
-static inline bool chip_hw_in_isr(void)
+static inline bool pos_hw_in_isr(void)
 {
     if(rt_interrupt_get_nest())
     {

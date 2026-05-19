@@ -21,50 +21,50 @@
 #include <stddef.h>
 #include <string.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-chip_os_error_t chip_os_sem_init(struct chip_os_sem * sem, uint16_t tokens)
+pos_error_t pos_sem_init(struct pos_sem * sem, uint16_t tokens)
 {
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     sem->handle = rt_sem_create("chip_sem", tokens, RT_IPC_FLAG_PRIO);
     assert(sem->handle);
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeout)
+pos_error_t pos_sem_take(struct pos_sem * sem, pos_time_t timeout)
 {
     rt_err_t ret;
 
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(sem->handle);
 
     ret = rt_sem_take(sem->handle, timeout);
 
-    return ret == RT_EOK ? CHIP_OS_OK : CHIP_OS_TIMEOUT;
+    return ret == RT_EOK ? POS_OK : POS_TIMEOUT;
 }
 
-chip_os_error_t chip_os_sem_give(struct chip_os_sem * sem)
+pos_error_t pos_sem_give(struct pos_sem * sem)
 {
     rt_err_t ret;
 
     if (!sem)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     assert(sem->handle);
 
     ret = rt_sem_release(sem->handle);
 
-    return ret == RT_EOK ? CHIP_OS_OK : CHIP_OS_ERROR;
+    return ret == RT_EOK ? POS_OK : POS_ERROR;
 }

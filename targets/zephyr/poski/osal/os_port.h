@@ -16,8 +16,8 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_OS_ZEPHYR_PORT_H
-#define CHIP_OS_ZEPHYR_PORT_H
+#ifndef POSKI_OS_ZEPHYR_PORT_H
+#define POSKI_OS_ZEPHYR_PORT_H
 
 #include <zephyr/kernel.h>
 #include <assert.h>
@@ -27,4 +27,4 @@
 #include "os_time.h"
 #include "os_types.h"
 
-#endif /* CHIP_OS_ZEPHYR_PORT_H */
+#endif /* POSKI_OS_ZEPHYR_PORT_H */

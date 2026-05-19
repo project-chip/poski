@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_SEM_H
-#define CHIP_OS_SEM_H
+#ifndef POSKI_OS_SEM_H
+#define POSKI_OS_SEM_H
 
 #include "poski/osal/os_types.h"
 
@@ -39,24 +39,24 @@ extern "C" {
  *
  * @return N/A
  */
-chip_os_error_t chip_os_sem_init(struct chip_os_sem * sem, uint16_t tokens);
+pos_error_t pos_sem_init(struct pos_sem * sem, uint16_t tokens);
 
 /**
  * @brief Take a semaphore.
  *
  * This routine takes @a sem.
  *
- * @note Can be called by ISRs, but @a timeout must be set to CHIP_OS_TIME_NO_WAIT.
+ * @note Can be called by ISRs, but @a timeout must be set to POS_TIME_NO_WAIT.
  *
  * @param sem Address of the semaphore.
  * @param timeout Waiting period to take the semaphore (in milliseconds),
- *                or one of the special values CHIP_OS_TIME_NO_WAIT and CHIP_OS_TIME_FOREVER.
+ *                or one of the special values POS_TIME_NO_WAIT and POS_TIME_FOREVER.
  *
- * @retval CHIP_OS_OK Semaphore taken.
- * @retval CHIP_OS_EBUSY Returned without waiting.
- * @retval CHIP_OS_TIMEOUT Waiting period timed out.
+ * @retval POS_OK Semaphore taken.
+ * @retval POS_EBUSY Returned without waiting.
+ * @retval POS_TIMEOUT Waiting period timed out.
  */
-chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeout);
+pos_error_t pos_sem_take(struct pos_sem * sem, pos_time_t timeout);
 
 /**
  * @brief Give a semaphore.
@@ -70,10 +70,10 @@ chip_os_error_t chip_os_sem_take(struct chip_os_sem * sem, chip_os_time_t timeou
  *
  * @return N/A
  */
-chip_os_error_t chip_os_sem_give(struct chip_os_sem * sem);
+pos_error_t pos_sem_give(struct pos_sem * sem);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_SEM_H */
+#endif /* POSKI_OS_SEM_H */

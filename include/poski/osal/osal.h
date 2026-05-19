@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OSAL_H
-#define CHIP_OSAL_H
+#ifndef POSKI_OSAL_H
+#define POSKI_OSAL_H
 
 #include "poski/osal/os_types.h"
 #include "poski/osal/os_mutex.h"
@@ -32,4 +32,4 @@
 #include "poski/osal/os_task.h"
 #include "poski/osal/os_sched.h"
 
-#endif /* CHIP_OSAL_H */
+#endif /* POSKI_OSAL_H */

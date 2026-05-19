@@ -31,17 +31,17 @@
 
 #define TEST_ITERATIONS 10
 
-#define TASK1_PRIO CHIP_OS_PRIORITY_APP
-#define TASK2_PRIO CHIP_OS_PRIORITY_APP
+#define TASK1_PRIO POS_PRIORITY_APP
+#define TASK2_PRIO POS_PRIORITY_APP
 
 #define TASK1_STACK_SIZE 1028
 #define TASK2_STACK_SIZE 1028
 
-static struct chip_os_task task1;
-static struct chip_os_task task2;
+static struct pos_task task1;
+static struct pos_task task2;
 
-struct chip_os_sem task1_sem;
-struct chip_os_sem task2_sem;
+struct pos_sem task1_sem;
+struct pos_sem task2_sem;
 
 /* Task 1 handler function */
 void * task1_run(void * arg)
@@ -49,10 +49,10 @@ void * task1_run(void * arg)
     for (int i = 0; i < TEST_ITERATIONS; i++)
     {
         /* Release semaphore to task 2 */
-        SuccessOrQuit(chip_os_sem_give(&task1_sem), "chip_os_sem_give: error releasing task2_sem.");
+        SuccessOrQuit(pos_sem_give(&task1_sem), "pos_sem_give: error releasing task2_sem.");
 
         /* Wait for semaphore from task 2 */
-        SuccessOrQuit(chip_os_sem_take(&task2_sem, CHIP_OS_TIME_FOREVER), "chip_os_sem_take: error waiting for task2_sem.");
+        SuccessOrQuit(pos_sem_take(&task2_sem, POS_TIME_FOREVER), "pos_sem_take: error waiting for task2_sem.");
     }
 
     printf("All tests passed\n");
@@ -67,10 +67,10 @@ void * task2_run(void * arg)
     while (1)
     {
         /* Wait for semaphore from task1 */
-        SuccessOrQuit(chip_os_sem_take(&task1_sem, CHIP_OS_TIME_FOREVER), "chip_os_sem_take: error waiting for task1_sem.");
+        SuccessOrQuit(pos_sem_take(&task1_sem, POS_TIME_FOREVER), "pos_sem_take: error waiting for task1_sem.");
 
         /* Release task2 semaphore */
-        SuccessOrQuit(chip_os_sem_give(&task2_sem), "chip_os_sem_give: error releasing task1_sem.");
+        SuccessOrQuit(pos_sem_give(&task2_sem), "pos_sem_give: error releasing task1_sem.");
     }
 
     return NULL;
@@ -80,14 +80,14 @@ void * task2_run(void * arg)
 void task1_init(void)
 {
     /* Initialize task1 semaphore */
-    SuccessOrQuit(chip_os_sem_init(&task1_sem, 0), "chip_os_sem_init: task1 returned error.");
+    SuccessOrQuit(pos_sem_init(&task1_sem, 0), "pos_sem_init: task1 returned error.");
 }
 
 /* Initialize task 2 exposed data objects */
 void task2_init(void)
 {
     /* Initialize task1 semaphore */
-    SuccessOrQuit(chip_os_sem_init(&task2_sem, 0), "chip_os_sem_init: task2 returned error.");
+    SuccessOrQuit(pos_sem_init(&task2_sem, 0), "pos_sem_init: task2 returned error.");
 }
 
 /**
@@ -109,9 +109,9 @@ static int init_app_tasks(void)
     /*
      * Initialize tasks 1 and 2 with the OS.
      */
-    chip_os_task_init(&task1, "task1", task1_run, NULL, TASK1_PRIO, TASK1_STACK_SIZE);
+    pos_task_init(&task1, "task1", task1_run, NULL, TASK1_PRIO, TASK1_STACK_SIZE);
 
-    chip_os_task_init(&task2, "task2", task2_run, NULL, TASK2_PRIO, TASK2_STACK_SIZE);
+    pos_task_init(&task2, "task2", task2_run, NULL, TASK2_PRIO, TASK2_STACK_SIZE);
 
     return 0;
 }
@@ -128,7 +128,7 @@ int main(int argc, char ** arg)
     /* Initialize application specific tasks */
     init_app_tasks();
 
-    chip_os_sched_start();
+    pos_sched_start();
 
     /* main never returns */
 

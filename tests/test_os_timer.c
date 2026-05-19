@@ -45,18 +45,18 @@
 #define TEST_TIMER_MARGIN (10)
 #define TEST_TIMER1_DURATION (1000)
 
-static struct chip_os_task s_task1;
+static struct pos_task s_task1;
 
-struct chip_os_timer s_timer1;
+struct pos_timer s_timer1;
 
-static chip_os_time_t s_timer1_start;
+static pos_time_t s_timer1_start;
 
 static void test_timer1_fired(void * arg)
 {
-    struct chip_os_timer * t = (struct chip_os_timer *) arg;
-    chip_os_time_t now       = chip_os_time_get();
-    chip_os_time_t delta     = now - s_timer1_start;
-    delta                    = chip_os_time_ticks_to_ms(delta);
+    struct pos_timer * t = (struct pos_timer *) arg;
+    pos_time_t now       = pos_time_get();
+    pos_time_t delta     = now - s_timer1_start;
+    delta                    = pos_time_ticks_to_ms(delta);
 
     TEST_LOG("test_timer fired now=%d\n", now);
     TEST_LOG("test_timer fired start=%d\n", s_timer1_start);
@@ -64,28 +64,28 @@ static void test_timer1_fired(void * arg)
 
     VerifyOrQuit((delta >= TEST_TIMER1_DURATION), "timer: duration too short");
     VerifyOrQuit((delta < (TEST_TIMER1_DURATION + TEST_TIMER_MARGIN)), "timer: duration too long");
-    VerifyOrQuit(!chip_os_timer_is_active(t), "timer: fired, but still active");
-    VerifyOrQuit(chip_os_timer_arg_get(t) == t, "timer: arg incorrect");
+    VerifyOrQuit(!pos_timer_is_active(t), "timer: fired, but still active");
+    VerifyOrQuit(pos_timer_arg_get(t) == t, "timer: arg incorrect");
 
     printf("All tests passed\n");
     exit(PASS);
 }
 
-void test_timer1(struct chip_os_timer * t)
+void test_timer1(struct pos_timer * t)
 {
-    s_timer1_start = chip_os_time_get();
-    chip_os_timer_init(t, test_timer1_fired, t);
-    chip_os_timer_start_ms(t, TEST_TIMER1_DURATION);
+    s_timer1_start = pos_time_get();
+    pos_timer_init(t, test_timer1_fired, t);
+    pos_timer_start_ms(t, TEST_TIMER1_DURATION);
 }
 
 void test_sleep()
 {
-    chip_os_time_t start = chip_os_time_get_ms();
-    chip_os_time_t end, delta;
+    pos_time_t start = pos_time_get_ms();
+    pos_time_t end, delta;
 
-    chip_os_task_sleep_ms(1000);
+    pos_task_sleep_ms(1000);
 
-    end   = chip_os_time_get_ms();
+    end   = pos_time_get_ms();
     delta = end - start;
 
     TEST_LOG("test_sleep now=%d\n", end);
@@ -106,21 +106,21 @@ void * task1_run(void * arg)
     /* Wait for timers to trigger exit. */
     while (1)
     {
-        chip_os_task_yield();
+        pos_task_yield();
     }
 }
 
-void test_time_convert(chip_os_time_t truth_ticks, chip_os_time_t truth_ms)
+void test_time_convert(pos_time_t truth_ticks, pos_time_t truth_ms)
 {
-    chip_os_time_t ms;
-    chip_os_time_t ticks;
+    pos_time_t ms;
+    pos_time_t ticks;
 
-    ms = chip_os_time_ticks_to_ms(truth_ticks);
+    ms = pos_time_ticks_to_ms(truth_ticks);
     TEST_LOG("Convert ticks=%d to ms=%d expect=%d\n", truth_ticks, ms, truth_ms);
     VerifyOrQuit((ms >= truth_ms - TEST_TIME_CONVERSION_MARGIN), "time: ticks to ms conversion too short");
     VerifyOrQuit((ms <= truth_ms + TEST_TIME_CONVERSION_MARGIN), "time: ticks to ms conversion too long");
 
-    ticks = chip_os_time_ms_to_ticks(truth_ms);
+    ticks = pos_time_ms_to_ticks(truth_ms);
     TEST_LOG("Convert ms=%d to ticks=%d expect=%d\n", truth_ms, ticks, truth_ticks);
     VerifyOrQuit((ticks >= truth_ticks - TEST_TIME_CONVERSION_MARGIN), "time: ms to ticks conversion too short");
     VerifyOrQuit((ticks <= truth_ticks + TEST_TIME_CONVERSION_MARGIN), "time: ms to ticks conversion too long");
@@ -128,7 +128,7 @@ void test_time_convert(chip_os_time_t truth_ticks, chip_os_time_t truth_ms)
 
 void test_time_conversions()
 {
-    chip_os_time_t tps = CHIP_OS_TICKS_PER_SEC;
+    pos_time_t tps = POS_TICKS_PER_SEC;
     test_time_convert(tps, 1000);
     test_time_convert(tps * 100, 100000);
     test_time_convert(tps / 100, 10);
@@ -148,9 +148,9 @@ int main(void)
     /*
      * Initialize tasks 1 and 2 with the OS.
      */
-    chip_os_task_init(&s_task1, "task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
+    pos_task_init(&s_task1, "task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
 
-    chip_os_sched_start();
+    pos_sched_start();
 
     /* main never returns */
 

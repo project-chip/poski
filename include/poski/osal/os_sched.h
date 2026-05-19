@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_SCHED_H
-#define CHIP_OS_SCHED_H
+#ifndef POSKI_OS_SCHED_H
+#define POSKI_OS_SCHED_H
 
 #include "poski/osal/os_types.h"
 
@@ -36,17 +36,17 @@ extern "C" {
  *
  * @note This routine will never return.
  */
-void chip_os_sched_start(void);
+void pos_sched_start(void);
 
 /**
  * @brief Returns whether the task scheduler has been started.
  *
  * @return true is started, false otherwise.
  */
-bool chip_os_sched_started(void);
+bool pos_sched_started(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_SCHED_H */
+#endif /* POSKI_OS_SCHED_H */

@@ -20,8 +20,8 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_TIMER_H
-#define CHIP_OS_TIMER_H
+#ifndef POSKI_OS_TIMER_H
+#define POSKI_OS_TIMER_H
 
 #include "poski/osal/os_types.h"
 
@@ -41,7 +41,7 @@ extern "C" {
  * @retval CHIP_OS_OK Timer was created.
  * @retval CHIP_OS_ERROR Timer creation failed.
  */
-chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_fn cb, void * arg);
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn cb, void * arg);
 
 /**
  * @brief Start a timer.
@@ -56,10 +56,10 @@ chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_f
  * @param timer     Address of timer.
  * @param duration  Initial timer duration [ticks].
  *
- * @retval CHIP_OS_OK Message received.
- * @retval CHIP_OS_EBUSY Returned without waiting.
+ * @retval POS_OK Message received.
+ * @retval POS_EBUSY Returned without waiting.
  */
-chip_os_error_t chip_os_timer_start_ms(struct chip_os_timer * timer, chip_os_time_t duration);
+pos_error_t pos_timer_start_ms(struct pos_timer * timer, pos_time_t duration);
 
 /**
  * @brief Start a timer.
@@ -74,10 +74,10 @@ chip_os_error_t chip_os_timer_start_ms(struct chip_os_timer * timer, chip_os_tim
  * @param timer     Address of timer.
  * @param ticks     Initial timer duration [CPU ticks].
  *
- * @retval CHIP_OS_OK Message received.
- * @retval CHIP_OS_EBUSY Returned without waiting.
+ * @retval POS_OK Message received.
+ * @retval POS_EBUSY Returned without waiting.
  */
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks);
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks);
 
 /**
  * @brief Stop a timer.
@@ -89,36 +89,36 @@ chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t
  * effect on the timer.
  *
  * @note Can be called by ISRs.  The stop handler has to be callable from ISRs
- * if @a chip_os_timer_stop is to be called from ISRs.
+ * if @a pos_timer_stop is to be called from ISRs.
  *
  * @param timer     Address of timer.
  *
  * @return N/A
  */
-chip_os_error_t chip_os_timer_stop(struct chip_os_timer * timer);
+pos_error_t pos_timer_stop(struct pos_timer * timer);
 
 /**
  * @brief Check whether the given timer has been initialized.
  *
  * @param timer     Address of timer.
  *
- * @retval CHIP_OS_OK Timer is initialized.
- * @retval CHIP_OS_EINVAL Timer is invalid.
+ * @retval POS_OK Timer is initialized.
+ * @retval POS_EINVAL Timer is invalid.
  */
-chip_os_error_t chip_os_timer_inited(struct chip_os_timer * timer);
+pos_error_t pos_timer_inited(struct pos_timer * timer);
 
-bool chip_os_timer_is_active(struct chip_os_timer * timer);
+bool pos_timer_is_active(struct pos_timer * timer);
 
-chip_os_time_t chip_os_timer_get_ticks(struct chip_os_timer * timer);
+pos_time_t pos_timer_get_ticks(struct pos_timer * timer);
 
-chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_os_time_t time);
+pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t time);
 
-void chip_os_timer_arg_set(struct chip_os_timer * timer, void * arg);
+void pos_timer_arg_set(struct pos_timer * timer, void * arg);
 
-void * chip_os_timer_arg_get(struct chip_os_timer * timer);
+void * pos_timer_arg_get(struct pos_timer * timer);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CHIP_OS_TIMER_H */
+#endif /* POSKI_OS_TIMER_H */

@@ -23,14 +23,14 @@
 
 #include "os_hw.h"
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
-chip_os_error_t chip_os_queue_get(struct chip_os_queue * queue, void * data, chip_os_time_t tmo)
+pos_error_t pos_queue_get(struct pos_queue * queue, void * data, pos_time_t tmo)
 {
     BaseType_t woken;
     BaseType_t ret;
 
-    if (chip_hw_in_isr())
+    if (pos_hw_in_isr())
     {
         assert(tmo == 0);
         ret = xQueueReceiveFromISR(queue->handle, data, &woken);
@@ -42,15 +42,15 @@ chip_os_error_t chip_os_queue_get(struct chip_os_queue * queue, void * data, chi
     }
     assert(ret == pdPASS || ret == errQUEUE_EMPTY);
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_queue_put(struct chip_os_queue * queue, void * data)
+pos_error_t pos_queue_put(struct pos_queue * queue, void * data)
 {
     BaseType_t woken;
     BaseType_t ret;
 
-    if (chip_hw_in_isr())
+    if (pos_hw_in_isr())
     {
         ret = xQueueSendToBackFromISR(queue->handle, data, &woken);
         portYIELD_FROM_ISR(woken);
@@ -62,5 +62,5 @@ chip_os_error_t chip_os_queue_put(struct chip_os_queue * queue, void * data)
 
     assert(ret == pdPASS);
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }

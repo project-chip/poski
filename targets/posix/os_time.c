@@ -23,9 +23,9 @@
 
 #define ONE_THOUSAND 1000.0
 #define ONE_BILLION 1000000000.0
-#define CHIP_OS_TICKS_PER_SEC_F ((double) CHIP_OS_TICKS_PER_SEC)
-#define CHIP_OS_TICKS_PER_MILLISEC_F (CHIP_OS_TICKS_PER_SEC_F * ONE_THOUSAND)
-#define CHIP_OS_TICKS_PER_NANOSEC_F (CHIP_OS_TICKS_PER_SEC_F * ONE_BILLION)
+#define POS_TICKS_PER_SEC_F ((double) POS_TICKS_PER_SEC)
+#define POS_TICKS_PER_MILLISEC_F (POS_TICKS_PER_SEC_F * ONE_THOUSAND)
+#define POS_TICKS_PER_NANOSEC_F (POS_TICKS_PER_SEC_F * ONE_BILLION)
 
 #ifdef __APPLE__
 // OS X does not have clock_gettime, use clock_get_time
@@ -33,46 +33,46 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-chip_os_time_t chip_os_time_get(void)
+pos_time_t pos_time_get(void)
 {
-    chip_os_time_t ticks;
+    pos_time_t ticks;
     clock_serv_t cclock;
     mach_timespec_t mts;
     host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
     clock_get_time(cclock, &mts);
     mach_port_deallocate(mach_task_self(), cclock);
-    ticks = mts.tv_sec * CHIP_OS_TICKS_PER_SEC_F + mts.tv_nsec / CHIP_OS_TICKS_PER_NANOSEC_F;
+    ticks = mts.tv_sec * POS_TICKS_PER_SEC_F + mts.tv_nsec / POS_TICKS_PER_NANOSEC_F;
     return ticks;
 }
 
 #else
 // True POSIX Implementation
 
-chip_os_time_t chip_os_time_get(void)
+pos_time_t pos_time_get(void)
 {
-    chip_os_time_t ticks;
+    pos_time_t ticks;
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now))
     {
         return 0;
     }
-    ticks = now.tv_sec * CHIP_OS_TICKS_PER_SEC_F + now.tv_nsec / CHIP_OS_TICKS_PER_NANOSEC_F;
+    ticks = now.tv_sec * POS_TICKS_PER_SEC_F + now.tv_nsec / POS_TICKS_PER_NANOSEC_F;
     return ticks;
 }
 
 #endif // __APPLE__
 
-chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms)
+pos_time_t pos_time_ms_to_ticks(pos_time_t ms)
 {
-    return (ms * CHIP_OS_TICKS_PER_SEC_F) / ONE_THOUSAND;
+    return (ms * POS_TICKS_PER_SEC_F) / ONE_THOUSAND;
 }
 
-chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks)
+pos_time_t pos_time_ticks_to_ms(pos_time_t ticks)
 {
-    return (ticks * ONE_THOUSAND) / CHIP_OS_TICKS_PER_SEC_F;
+    return (ticks * ONE_THOUSAND) / POS_TICKS_PER_SEC_F;
 }
 
-chip_os_time_t chip_os_time_get_ms(void)
+pos_time_t pos_time_get_ms(void)
 {
-    return chip_os_time_ticks_to_ms(chip_os_time_get());
+    return pos_time_ticks_to_ms(pos_time_get());
 }

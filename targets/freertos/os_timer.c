@@ -17,36 +17,36 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_hw.h"
 
-static void chip_os_timer_cb(TimerHandle_t freertosTimer)
+static void pos_timer_cb(TimerHandle_t freertosTimer)
 {
-    struct chip_os_timer * timer = pvTimerGetTimerID(freertosTimer);
+    struct pos_timer * timer = pvTimerGetTimerID(freertosTimer);
     assert(timer);
 
-    chip_os_timer_stop(timer);
+    pos_timer_stop(timer);
 
     timer->func(timer->arg);
 }
 
-chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_fn * tm_cb, void * tm_arg)
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn * tm_cb, void * tm_arg)
 {
     memset(timer, 0, sizeof(*timer));
     timer->func   = tm_cb;
     timer->arg    = tm_arg;
-    timer->handle = xTimerCreate("timer", 1, pdFALSE, timer, chip_os_timer_cb);
+    timer->handle = xTimerCreate("timer", 1, pdFALSE, timer, pos_timer_cb);
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks)
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks)
 {
     BaseType_t woken1, woken2, woken3;
 
     if (ticks < 0)
     {
-        return CHIP_OS_INVALID_PARAM;
+        return POS_INVALID_PARAM;
     }
 
     if (ticks == 0)
@@ -54,7 +54,7 @@ chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t
         ticks = 1;
     }
 
-    if (chip_hw_in_isr())
+    if (pos_hw_in_isr())
     {
         xTimerStopFromISR(timer->handle, &woken1);
         xTimerChangePeriodFromISR(timer->handle, ticks, &woken2);
@@ -69,12 +69,12 @@ chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t
         xTimerReset(timer->handle, portMAX_DELAY);
     }
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_os_time_t now)
+pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t now)
 {
-    chip_os_time_t rt;
+    pos_time_t rt;
     uint32_t exp;
 
     exp = xTimerGetExpiryTime(timer->handle);

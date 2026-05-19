@@ -16,7 +16,7 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_utils.h"
 
 #define MAX_TASKS 10
@@ -25,18 +25,18 @@
 K_THREAD_STACK_ARRAY_DEFINE(s_task_stacks, MAX_TASKS, STACK_SIZE);
 static bool s_stack_used[MAX_TASKS];
 
-static void zephyr_task_wrapper(void *p1, void *p2, void *p3)
+static void pos_task_wrapper(void *p1, void *p2, void *p3)
 {
-    chip_os_task_func_t func = (chip_os_task_func_t)p1;
+    pos_task_func_t func = (pos_task_func_t)p1;
     void * arg = p2;
     func(arg);
 }
 
-chip_os_error_t chip_os_task_init(struct chip_os_task * t, const char * name, chip_os_task_func_t func, void * arg, uint8_t prio,
+pos_error_t pos_task_init(struct pos_task * t, const char * name, pos_task_func_t func, void * arg, uint8_t prio,
                                   uint16_t stack_size)
 {
     if (stack_size > STACK_SIZE) {
-        return CHIP_OS_EINVAL;
+        return POS_EINVAL;
     }
 
     // Find unused stack
@@ -49,46 +49,46 @@ chip_os_error_t chip_os_task_init(struct chip_os_task * t, const char * name, ch
     }
 
     if (stack_idx == -1) {
-        return CHIP_OS_ENOMEM;
+        return POS_ENOMEM;
     }
 
     s_stack_used[stack_idx] = true;
     t->stack = s_task_stacks[stack_idx];
 
     t->tid = k_thread_create(&t->thread, t->stack, STACK_SIZE,
-                             zephyr_task_wrapper, (void *)func, arg, NULL,
+                             pos_task_wrapper, (void *)func, arg, NULL,
                              prio, 0, K_NO_WAIT);
 
     if (t->tid) {
         k_thread_name_set(t->tid, name);
-        return CHIP_OS_OK;
+        return POS_OK;
     } else {
         s_stack_used[stack_idx] = false;
-        return CHIP_OS_ERROR;
+        return POS_ERROR;
     }
 }
 
-void chip_os_task_yield(void)
+void pos_task_yield(void)
 {
     k_yield();
 }
 
-void chip_os_task_sleep(chip_os_time_t ticks)
+void pos_task_sleep(pos_time_t ticks)
 {
     k_sleep(K_TICKS(ticks));
 }
 
-void chip_os_task_sleep_ms(chip_os_time_t ms)
+void pos_task_sleep_ms(pos_time_t ms)
 {
     k_sleep(K_MSEC(ms));
 }
 
-void * chip_os_get_current_task_id(void)
+void * pos_get_current_task_id(void)
 {
     return k_current_get();
 }
 
-chip_os_error_t chip_os_task_remove(struct chip_os_task * t)
+pos_error_t pos_task_remove(struct pos_task * t)
 {
     k_thread_abort(t->tid);
     
@@ -100,5 +100,5 @@ chip_os_error_t chip_os_task_remove(struct chip_os_task * t)
         }
     }
     
-    return CHIP_OS_OK;
+    return POS_OK;
 }

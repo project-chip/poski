@@ -16,10 +16,10 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_OS_ZEPHYR_OS_UTILS_H
-#define CHIP_OS_ZEPHYR_OS_UTILS_H
+#ifndef POSKI_OS_ZEPHYR_OS_UTILS_H
+#define POSKI_OS_ZEPHYR_OS_UTILS_H
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include <assert.h>
 
 #define SuccessOrQuit(ERR, MSG) \
@@ -43,6 +43,6 @@
     }                                     \
   } while (false)
 
-chip_os_error_t map_zephyr_to_osal_error(int ret);
+pos_error_t map_zephyr_to_osal_error(int ret);
 
-#endif // CHIP_OS_ZEPHYR_OS_UTILS_H
+#endif // POSKI_OS_ZEPHYR_OS_UTILS_H

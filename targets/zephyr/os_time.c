@@ -16,24 +16,24 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
-chip_os_time_t chip_os_time_get(void)
+pos_time_t pos_time_get(void)
 {
-    return (chip_os_time_t)k_uptime_ticks();
+    return (pos_time_t)k_uptime_ticks();
 }
 
-chip_os_time_t chip_os_time_get_ms(void)
+pos_time_t pos_time_get_ms(void)
 {
     return k_uptime_get_32();
 }
 
-chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms)
+pos_time_t pos_time_ms_to_ticks(pos_time_t ms)
 {
     return k_ms_to_ticks_ceil32(ms);
 }
 
-chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks)
+pos_time_t pos_time_ticks_to_ms(pos_time_t ticks)
 {
     return k_ticks_to_ms_floor32(ticks);
 }

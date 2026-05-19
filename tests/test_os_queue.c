@@ -47,13 +47,13 @@ typedef struct
     int _param;
 } my_msg_t;
 
-static struct chip_os_task s_task1;
-static struct chip_os_task s_task2;
+static struct pos_task s_task1;
+static struct pos_task s_task2;
 
-struct chip_os_queue s_task1_queue;
-struct chip_os_queue s_task2_queue;
+struct pos_queue s_task1_queue;
+struct pos_queue s_task2_queue;
 
-static struct chip_os_queue s_queue;
+static struct pos_queue s_queue;
 
 static my_msg_t s_task1_msg_rx;
 static my_msg_t s_task2_msg_rx;
@@ -74,16 +74,16 @@ my_msg_t s_task2_msgs_src[] = {
 
 #define TEST_MSGS_COUNT (sizeof(s_task1_msgs_src) / sizeof(my_msg_t))
 
-void test_queue_init(struct chip_os_queue * q)
+void test_queue_init(struct pos_queue * q)
 {
-    VerifyOrQuit(!chip_os_queue_inited(q), "queue: q already initialized");
-    chip_os_queue_init(q, sizeof(my_msg_t), TEST_QUEUE_SIZE);
-    VerifyOrQuit(chip_os_queue_inited(q), "queue: not initialized");
+    VerifyOrQuit(!pos_queue_inited(q), "queue: q already initialized");
+    pos_queue_init(q, sizeof(my_msg_t), TEST_QUEUE_SIZE);
+    VerifyOrQuit(pos_queue_inited(q), "queue: not initialized");
 }
 
 void test_put(void)
 {
-    chip_os_queue_put(&s_queue, &s_task1_msgs_src[0]);
+    pos_queue_put(&s_queue, &s_task1_msgs_src[0]);
 }
 
 void test_get_verify(my_msg_t * msg_rx, my_msg_t * msg_src)
@@ -95,7 +95,7 @@ void test_get_verify(my_msg_t * msg_rx, my_msg_t * msg_src)
 
 void test_get(void)
 {
-    chip_os_queue_get(&s_queue, &s_task1_msg_rx, CHIP_OS_TIME_FOREVER);
+    pos_queue_get(&s_queue, &s_task1_msg_rx, POS_TIME_FOREVER);
     test_get_verify(&s_task1_msg_rx, &s_task1_msgs_src[0]);
 }
 
@@ -119,12 +119,12 @@ void * task1_run(void * arg)
         idx = i % TEST_MSGS_COUNT;
 
         /* Post to task2 msg queue */
-        SuccessOrQuit(chip_os_queue_put(&s_task2_queue, &s_task2_msgs_src[idx]),
-                      "chip_os_queue_put: error posting to s_task1_queue.");
+        SuccessOrQuit(pos_queue_put(&s_task2_queue, &s_task2_msgs_src[idx]),
+                      "pos_queue_put: error posting to s_task1_queue.");
 
         /* Wait on task1 msg queue. */
-        SuccessOrQuit(chip_os_queue_get(&s_task1_queue, &s_task1_msg_rx, CHIP_OS_TIME_FOREVER),
-                      "chip_os_queue_get: error waiting for s_task2_queue.");
+        SuccessOrQuit(pos_queue_get(&s_task1_queue, &s_task1_msg_rx, POS_TIME_FOREVER),
+                      "pos_queue_get: error waiting for s_task2_queue.");
 
         test_get_verify(&s_task1_msg_rx, &s_task1_msgs_src[idx]);
         TEST_LOG("task1: recieved msg.value = %d\n", s_task1_msg_rx._value);
@@ -145,15 +145,15 @@ void * task2_run(void * arg)
         idx = i++ % TEST_MSGS_COUNT;
 
         /* Wait on task2 msg queue. */
-        SuccessOrQuit(chip_os_queue_get(&s_task2_queue, &s_task2_msg_rx, CHIP_OS_TIME_FOREVER),
-                      "chip_os_queue_get: error waiting for s_task1_queue.");
+        SuccessOrQuit(pos_queue_get(&s_task2_queue, &s_task2_msg_rx, POS_TIME_FOREVER),
+                      "pos_queue_get: error waiting for s_task1_queue.");
 
         test_get_verify(&s_task2_msg_rx, &s_task2_msgs_src[idx]);
         TEST_LOG("task2: recieved msg.value = %d\n", s_task2_msg_rx._value);
 
         /* Post to task1 msg queue */
-        SuccessOrQuit(chip_os_queue_put(&s_task1_queue, &s_task1_msgs_src[idx]),
-                      "chip_os_queue_put: error posting to s_task1_queue.");
+        SuccessOrQuit(pos_queue_put(&s_task1_queue, &s_task1_msgs_src[idx]),
+                      "pos_queue_put: error posting to s_task1_queue.");
     }
 
     /* Never returns -- task1 will exit the test. */
@@ -179,11 +179,11 @@ int main(void)
     /*
      * Initialize tasks 1 and 2 with the OS.
      */
-    chip_os_task_init(&s_task1, "task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
+    pos_task_init(&s_task1, "task1", task1_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
 
-    chip_os_task_init(&s_task2, "task2", task2_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
+    pos_task_init(&s_task2, "task2", task2_run, NULL, TEST_TASK_PRIO, TEST_STACK_SIZE);
 
-    chip_os_sched_start();
+    pos_sched_start();
 
     /* main never returns */
 

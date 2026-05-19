@@ -26,20 +26,20 @@
 
 #define DEFAULT_TIMER_LEEWAY 100000 //< 100 [us]
 
-static void chip_os_timer_cb(void * arg)
+static void pos_timer_cb(void * arg)
 {
-    struct chip_os_timer * timer = (struct chip_os_timer *) arg;
+    struct pos_timer * timer = (struct pos_timer *) arg;
     assert(timer);
 
-    chip_os_timer_stop(timer);
+    pos_timer_stop(timer);
 
     timer->tm_cb(timer->tm_arg);
 }
 
-chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_fn * tm_cb, void * tm_arg)
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn * tm_cb, void * tm_arg)
 {
     dispatch_source_t dispatch = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
-    dispatch_source_set_event_handler_f(dispatch, chip_os_timer_cb);
+    dispatch_source_set_event_handler_f(dispatch, pos_timer_cb);
     dispatch_set_context(dispatch, timer);
 
     /* Initialize the timer. */
@@ -49,24 +49,24 @@ chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_f
     timer->tm_active = false;
     timer->tm_timer  = dispatch;
 
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks)
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks)
 {
-    chip_os_error_t err;
+    pos_error_t err;
     dispatch_source_t dispatch;
-    chip_os_time_t delay_ns;
+    pos_time_t delay_ns;
 
-    err = chip_os_timer_inited(timer);
+    err = pos_timer_inited(timer);
     SuccessOrExit(err);
 
     dispatch = timer->tm_timer;
-    err      = (dispatch == NULL) ? CHIP_OS_EINVAL : CHIP_OS_OK;
+    err      = (dispatch == NULL) ? POS_EINVAL : POS_OK;
     SuccessOrExit(err);
 
-    timer->tm_ticks = chip_os_time_get() + ticks;
-    delay_ns        = ticks * (1000000000.0 / CHIP_OS_TICKS_PER_SEC);
+    timer->tm_ticks = pos_time_get() + ticks;
+    delay_ns        = ticks * (1000000000.0 / POS_TICKS_PER_SEC);
     dispatch_source_set_timer(dispatch, dispatch_time(DISPATCH_TIME_NOW, delay_ns), DISPATCH_TIME_FOREVER, DEFAULT_TIMER_LEEWAY);
     dispatch_resume(dispatch);
     timer->tm_active = true;
@@ -75,14 +75,14 @@ exit:
     return err;
 }
 
-chip_os_error_t chip_os_timer_stop(struct chip_os_timer * timer)
+pos_error_t pos_timer_stop(struct pos_timer * timer)
 {
-    chip_os_error_t err;
+    pos_error_t err;
 
-    err = chip_os_timer_inited(timer);
+    err = pos_timer_inited(timer);
     SuccessOrExit(err);
 
-    err = (timer->tm_timer == NULL) ? CHIP_OS_EINVAL : CHIP_OS_OK;
+    err = (timer->tm_timer == NULL) ? POS_EINVAL : POS_OK;
     SuccessOrExit(err);
 
     dispatch_source_cancel(timer->tm_timer);
@@ -92,7 +92,7 @@ exit:
     return err;
 }
 
-chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_os_time_t now)
+pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t now)
 {
     // TODO: properly determine ticks remaining if possible or remove API if unused.
     return 0;
@@ -100,16 +100,16 @@ chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_
 
 #else
 
-static void chip_os_timer_cb(union sigval sv)
+static void pos_timer_cb(union sigval sv)
 {
-    struct chip_os_timer * timer = (struct chip_os_timer *) sv.sival_ptr;
+    struct pos_timer * timer = (struct pos_timer *) sv.sival_ptr;
     assert(timer);
 
     timer->tm_active = false;
     timer->tm_cb(timer->tm_arg);
 }
 
-chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_fn * tm_cb, void * tm_arg)
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn * tm_cb, void * tm_arg)
 {
     int ret;
     struct sigevent event;
@@ -122,20 +122,20 @@ chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_f
 
     event.sigev_notify            = SIGEV_THREAD;
     event.sigev_value.sival_ptr   = timer; // put timer obj in signal args
-    event.sigev_notify_function   = chip_os_timer_cb;
+    event.sigev_notify_function   = pos_timer_cb;
     event.sigev_notify_attributes = NULL;
 
     ret = timer_create(CLOCK_REALTIME, &event, &timer->tm_timer);
-    return (ret) ? CHIP_OS_ERROR : CHIP_OS_OK;
+    return (ret) ? POS_ERROR : POS_OK;
 }
 
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks)
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks)
 {
     struct itimerspec its;
-    chip_os_error_t err;
+    pos_error_t err;
     int ret;
 
-    err = chip_os_timer_inited(timer);
+    err = pos_timer_inited(timer);
     SuccessOrExit(err);
 
     if (ticks == 0)
@@ -143,7 +143,7 @@ chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t
         ticks = 1;
     }
 
-    timer->tm_ticks = chip_os_time_get() + ticks;
+    timer->tm_ticks = pos_time_get() + ticks;
 
     its.it_interval.tv_sec  = 0;
     its.it_interval.tv_nsec = 0; // one shot
@@ -153,19 +153,19 @@ chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t
     timer->tm_active = true;
 
     ret = timer_settime(timer->tm_timer, 0, &its, NULL);
-    err = (ret) ? CHIP_OS_EINVAL : CHIP_OS_OK;
+    err = (ret) ? POS_EINVAL : POS_OK;
     SuccessOrExit(err);
 
 exit:
     return err;
 }
 
-chip_os_error_t chip_os_timer_stop(struct chip_os_timer * timer)
+pos_error_t pos_timer_stop(struct pos_timer * timer)
 {
-    chip_os_error_t err;
+    pos_error_t err;
     int ret;
 
-    err = chip_os_timer_inited(timer);
+    err = pos_timer_inited(timer);
     SuccessOrExit(err);
 
     struct itimerspec its;
@@ -175,7 +175,7 @@ chip_os_error_t chip_os_timer_stop(struct chip_os_timer * timer)
     its.it_value.tv_nsec    = 0;
 
     ret = timer_settime(timer->tm_timer, 0, &its, NULL);
-    err = (ret) ? CHIP_OS_EINVAL : CHIP_OS_OK;
+    err = (ret) ? POS_EINVAL : POS_OK;
     SuccessOrExit(err);
 
     timer->tm_active = false;
@@ -184,9 +184,9 @@ exit:
     return err;
 }
 
-chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_os_time_t now)
+pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t now)
 {
-    chip_os_time_t rt;
+    pos_time_t rt;
     uint32_t exp;
 
     struct itimerspec its;
@@ -208,35 +208,35 @@ chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_
 
 #endif // __APPLE__
 
-chip_os_error_t chip_os_timer_start_ms(struct chip_os_timer * timer, chip_os_time_t duration)
+pos_error_t pos_timer_start_ms(struct pos_timer * timer, pos_time_t duration)
 {
-    chip_os_time_t delta = chip_os_time_ms_to_ticks(duration);
-    return chip_os_timer_start(timer, delta);
+    pos_time_t delta = pos_time_ms_to_ticks(duration);
+    return pos_timer_start(timer, delta);
 }
 
-bool chip_os_timer_is_active(struct chip_os_timer * timer)
+bool pos_timer_is_active(struct pos_timer * timer)
 {
     // TODO: seek native posix method to determine whether timer_t is active.
     // TODO: fix bug where one-shot timer is still active after fired.
     return timer->tm_active;
 }
 
-chip_os_error_t chip_os_timer_inited(struct chip_os_timer * timer)
+pos_error_t pos_timer_inited(struct pos_timer * timer)
 {
-    return (timer->tm_timer == NULL) ? CHIP_OS_EINVAL : CHIP_OS_OK;
+    return (timer->tm_timer == NULL) ? POS_EINVAL : POS_OK;
 }
 
-chip_os_time_t chip_os_timer_get_ticks(struct chip_os_timer * timer)
+pos_time_t pos_timer_get_ticks(struct pos_timer * timer)
 {
     return timer->tm_ticks;
 }
 
-void * chip_os_timer_arg_get(struct chip_os_timer * timer)
+void * pos_timer_arg_get(struct pos_timer * timer)
 {
     return timer->tm_arg;
 }
 
-void chip_os_timer_arg_set(struct chip_os_timer * timer, void * arg)
+void pos_timer_arg_set(struct pos_timer * timer, void * arg)
 {
     timer->tm_arg = arg;
 }
