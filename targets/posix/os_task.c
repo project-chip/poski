@@ -20,7 +20,7 @@
 #include <limits.h>
 #include <errno.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_utils.h"
 
 #ifdef __cplusplus

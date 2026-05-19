@@ -25,7 +25,7 @@
   chip_os_error_t chip_os_mutex_take(struct chip_os_mutex *sem);
 */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include "test_util.h"
 

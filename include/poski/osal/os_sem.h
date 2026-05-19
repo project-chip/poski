@@ -23,7 +23,7 @@
 #ifndef CHIP_OS_SEM_H
 #define CHIP_OS_SEM_H
 
-#include "chip/os_types.h"
+#include "poski/osal/os_types.h"
 
 #ifdef __cplusplus
 extern "C" {

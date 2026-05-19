@@ -20,33 +20,16 @@
  * under the License.
  */
 
-#ifndef CHIP_OS_TIME_H
-#define CHIP_OS_TIME_H
+#ifndef CHIP_OSAL_H
+#define CHIP_OSAL_H
 
-#include "chip/os_types.h"
+#include "poski/osal/os_types.h"
+#include "poski/osal/os_mutex.h"
+#include "poski/osal/os_sem.h"
+#include "poski/osal/os_queue.h"
+#include "poski/osal/os_timer.h"
+#include "poski/osal/os_time.h"
+#include "poski/osal/os_task.h"
+#include "poski/osal/os_sched.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * @brief Get system uptime.
- *
- * This routine returns the elapsed time since the system booted,
- * in milliseconds.
- *
- * @return Current uptime.
- */
-chip_os_time_t chip_os_time_get(void);
-
-chip_os_time_t chip_os_time_get_ms(void);
-
-chip_os_time_t chip_os_time_ms_to_ticks(chip_os_time_t ms);
-
-chip_os_time_t chip_os_time_ticks_to_ms(chip_os_time_t ticks);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* CHIP_OS_TIME_H */
+#endif /* CHIP_OSAL_H */

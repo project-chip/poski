@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_utils.h"
 
 chip_os_error_t chip_os_mutex_init(struct chip_os_mutex * mu)

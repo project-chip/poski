@@ -20,16 +20,33 @@
  * under the License.
  */
 
-#ifndef CHIP_OSAL_H
-#define CHIP_OSAL_H
+#ifndef CHIP_OS_SCHED_H
+#define CHIP_OS_SCHED_H
 
-#include "chip/os_types.h"
-#include "chip/os_mutex.h"
-#include "chip/os_sem.h"
-#include "chip/os_queue.h"
-#include "chip/os_timer.h"
-#include "chip/os_time.h"
-#include "chip/os_task.h"
-#include "chip/os_sched.h"
+#include "poski/osal/os_types.h"
 
-#endif /* CHIP_OSAL_H */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @brief Start the task scheduler.
+ *
+ * This routine will begin execution of all initialized @a tasks.
+ *
+ * @note This routine will never return.
+ */
+void chip_os_sched_start(void);
+
+/**
+ * @brief Returns whether the task scheduler has been started.
+ *
+ * @return true is started, false otherwise.
+ */
+bool chip_os_sched_started(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CHIP_OS_SCHED_H */

@@ -33,7 +33,7 @@
 
 #include <limits.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include "test_util.h"
 

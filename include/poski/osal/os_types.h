@@ -55,7 +55,7 @@ enum chip_os_error
 typedef enum chip_os_error chip_os_error_t;
 
 /* Include OS-specific definitions */
-#include "chip/os_port.h"
+#include "poski/osal/os_port.h"
 
 #ifdef __cplusplus
 }

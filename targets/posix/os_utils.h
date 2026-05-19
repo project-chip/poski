@@ -2,7 +2,7 @@
 #ifndef _OS_UTILS_H
 #define _OS_UTILS_H
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include <assert.h>
 
 #define SuccessOrQuit(ERR, MSG) \

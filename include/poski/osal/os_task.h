@@ -23,7 +23,7 @@
 #ifndef CHIP_OS_TASK_H
 #define CHIP_OS_TASK_H
 
-#include "chip/os_types.h"
+#include "poski/osal/os_types.h"
 
 #ifdef __cplusplus
 extern "C" {
