@@ -42,15 +42,7 @@ void pos_queue_set_signal_cb(struct pos_queue * msgq, pos_signal_fn signal_cb, v
 bool pos_queue_is_empty(struct pos_queue * msgq)
 {
     ring_t * q = static_cast<ring_t *>(msgq->q);
-
-    if (q->size())
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
+    return (q->size() == 0);
 }
 
 int pos_queue_inited(const struct pos_queue * msgq)

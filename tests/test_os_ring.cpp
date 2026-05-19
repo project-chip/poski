@@ -19,7 +19,7 @@
 #include <limits.h>
 
 #include "test_util.h"
-#include <Ring.h>
+#include <poski/OsRing.h>
 
 #define TEST_ITERATIONS (2 * USHRT_MAX)
 
@@ -27,7 +27,7 @@ void test_ring_init(void)
 {
     uint8_t val;
     uint8_t * out;
-    Ring ring(sizeof(uint8_t), 4);
+    poski::OsRing ring(sizeof(uint8_t), 4);
 
     val = 1;
     ring.push_back(&val);
@@ -45,7 +45,7 @@ void test_ring_init(void)
 void test_ring_empty(void)
 {
     uint8_t val;
-    Ring ring(sizeof(uint8_t), 4);
+    poski::OsRing ring(sizeof(uint8_t), 4);
 
     VerifyOrQuit(ring.empty(), "test_ring: new ring not empty");
 
@@ -60,7 +60,7 @@ void test_ring_empty(void)
 void test_ring_full(void)
 {
     uint8_t val;
-    Ring ring(sizeof(uint8_t), 4);
+    poski::OsRing ring(sizeof(uint8_t), 4);
 
     VerifyOrQuit(!ring.full(), "test_ring: new ring reporting as full");
 
@@ -81,17 +81,17 @@ void test_ring_full(void)
 
 void test_ring_pow2(void)
 {
-    Ring ring2(sizeof(uint8_t), 2);
-    Ring ring4(sizeof(uint8_t), 4);
-    Ring ring8(sizeof(uint8_t), 8);
-    Ring ring16(sizeof(uint8_t), 16);
+    poski::OsRing ring2(sizeof(uint8_t), 2);
+    poski::OsRing ring4(sizeof(uint8_t), 4);
+    poski::OsRing ring8(sizeof(uint8_t), 8);
+    poski::OsRing ring16(sizeof(uint8_t), 16);
 }
 
 void test_ring_stress(void)
 {
     uint8_t val;
     uint8_t * out;
-    Ring ring(sizeof(uint8_t), 4);
+    poski::OsRing ring(sizeof(uint8_t), 4);
 
     for (int i = 0; i < TEST_ITERATIONS; i++)
     {

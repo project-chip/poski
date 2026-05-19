@@ -21,18 +21,18 @@
 
 #include <pthread.h>
 
-#include "Ring.h"
+#include <poski/OsRing.h>
 
-class RingPthread : Ring
+class RingPthread : public poski::OsRing
 {
-    typedef Ring super_t;
+    typedef poski::OsRing super_t;
 
     pthread_mutex_t _mutex;
     pthread_mutexattr_t _mutexAttr;
     pthread_cond_t _condv;
 
 public:
-    RingPthread(uint16_t itemSize, uint16_t itemCount) : Ring(itemSize, itemCount)
+    RingPthread(uint16_t itemSize, uint16_t itemCount) : poski::OsRing(itemSize, itemCount)
     {
         pthread_mutexattr_init(&_mutexAttr);
         pthread_mutexattr_settype(&_mutexAttr, PTHREAD_MUTEX_RECURSIVE);
