@@ -19,7 +19,7 @@
 
 #include <time.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #define ONE_THOUSAND 1000.0
 #define ONE_BILLION 1000000000.0

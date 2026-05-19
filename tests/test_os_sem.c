@@ -25,7 +25,7 @@
   chip_os_error_t chip_os_sem_take(struct chip_os_sem *sem, uint32_t timeout);
 */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include "test_util.h"
 

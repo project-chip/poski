@@ -31,7 +31,7 @@
   int chip_os_queue_inited(const struct chip_os_queue *evq);
 */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 #include "test_util.h"
 

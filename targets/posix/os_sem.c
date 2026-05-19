@@ -21,7 +21,7 @@
 #include <errno.h>
 #include <semaphore.h>
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 #include "os_utils.h"
 
 #ifdef __APPLE__
