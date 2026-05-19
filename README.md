@@ -302,21 +302,5 @@ To run the Google Test (gtest) suite:
 $ bazel test //:gtest
 ```
 
-### Local Troubleshooting (GCC 15+ on Linux)
-
-If you are compiling on a Linux distribution with **GCC 15+** and **binutils 2.45+** (such as gLinux), you might encounter a linker error related to `.sframe` relocation (e.g., `relocation refers to local symbol... which is defined in a discarded section`).
-
-This is a known toolchain bug where the compiler generates SFrame stack trace sections by default but the linker fails to handle them during COMDAT section discarding.
-
-To resolve this locally on your machine without affecting the public CI:
-
-1. Create a file named `user.bazelrc` in the root of your repository (it is already ignored by git).
-2. Add the following lines to disable SFrame generation in the assembler:
-   ```
-   build --copt=-Wa,--gsframe=no
-   build --cxxopt=-Wa,--gsframe=no
-   ```
-
-Bazel will automatically load these settings on your machine.
 
 

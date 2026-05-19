@@ -1,2 +1,3 @@
 build --symlink_prefix=/
-try-import %workspace%/user.bazelrc
+build --repo_env=CC=clang
+build --repo_env=CXX=clang++
