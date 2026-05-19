@@ -271,13 +271,31 @@ $ bazel build //:all
 
 #### Make
 
-```
+To run the standard tests:
+```bash
 $ make test
+```
+
+To run the Google Test (gtest) suite (which automatically downloads and builds gtest locally):
+```bash
+$ make gtest
 ```
 
 #### Bazel
 
-```
+To run the standard tests:
+```bash
 $ bazel test //:all
 ```
+
+To run the Google Test (gtest) suite:
+```bash
+$ bazel test //:test_os_task_gtest //:test_os_queue_gtest //:test_os_mutex_gtest //:test_os_sem_gtest //:test_os_timer_gtest //:test_ring_gtest
+```
+
+> [!NOTE]
+> If you encounter linker errors related to `.sframe` relocation on Linux, you may need to pass the `--copt=-Wa,--gsframe=no` option to Bazel:
+> ```bash
+> $ bazel test //:test_os_task_gtest ... --copt=-Wa,--gsframe=no
+> ```
 

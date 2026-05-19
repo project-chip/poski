@@ -97,6 +97,7 @@ DEFINES =                   \
 CFLAGS =                    \
     $(INCLUDES) $(DEFINES)  \
     $(TARGET_CCFLAGS)       \
+    -Wa,--gsframe=no        \
     $(NULL)
 
 LDFLAGS = $(TARGET_LDFLAGS)
@@ -170,13 +171,111 @@ test: all
 	./test_os_timer.exe
 	./test_ring.exe
 
+### ===== Google Test (gtest) =====
+
+GTEST_VER = 1.14.0
+GTEST_DIR = googletest-$(GTEST_VER)
+GTEST_TAR = googletest-$(GTEST_VER).tar.gz
+GTEST_URL = https://github.com/google/googletest/archive/refs/tags/v$(GTEST_VER).tar.gz
+
+# Download and unpack Google Test
+$(GTEST_DIR):
+	@echo "Downloading Google Test v$(GTEST_VER)..."
+	curl -L -o $(GTEST_TAR) $(GTEST_URL)
+	tar -xzf $(GTEST_TAR)
+	rm $(GTEST_TAR)
+
+# Google Test compilation
+GTEST_INCLUDES = -I$(GTEST_DIR)/googletest/include -I$(GTEST_DIR)/googletest
+GTEST_OBJS = $(GTEST_DIR)/gtest-all.o $(GTEST_DIR)/gtest_main.o
+
+$(GTEST_DIR)/gtest-all.o: $(GTEST_DIR)
+	$(CPP) -std=c++14 $(GTEST_INCLUDES) -c $(GTEST_DIR)/googletest/src/gtest-all.cc -o $@
+
+$(GTEST_DIR)/gtest_main.o: $(GTEST_DIR)
+	$(CPP) -std=c++14 $(GTEST_INCLUDES) -c $(GTEST_DIR)/googletest/src/gtest_main.cc -o $@
+
+# Wrapper compiling rules
+test_os_task_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Task -DTEST_MAIN=test_os_task_main -DWRAP_C_MAIN $< -o $@
+
+test_os_queue_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Queue -DTEST_MAIN=test_os_queue_main -DWRAP_C_MAIN $< -o $@
+
+test_os_mutex_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Mutex -DTEST_MAIN=test_os_mutex_main -DWRAP_C_MAIN $< -o $@
+
+test_os_sem_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Sem -DTEST_MAIN=test_os_sem_main -DWRAP_C_MAIN $< -o $@
+
+test_os_timer_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Timer -DTEST_MAIN=test_os_timer_main -DWRAP_C_MAIN $< -o $@
+
+test_ring_wrapper.o: test_gtest_wrapper.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) -DTEST_NAME=Ring -DTEST_MAIN=test_ring_main $< -o $@
+
+# Renamed main object compilation
+test_os_task_gtest.o: test_os_task.c
+	$(CC) -c $(CFLAGS) -Dmain=test_os_task_main $< -o $@
+
+test_os_queue_gtest.o: test_os_queue.c
+	$(CC) -c $(CFLAGS) -Dmain=test_os_queue_main $< -o $@
+
+test_os_mutex_gtest.o: test_os_mutex.c
+	$(CC) -c $(CFLAGS) -Dmain=test_os_mutex_main $< -o $@
+
+test_os_sem_gtest.o: test_os_sem.c
+	$(CC) -c $(CFLAGS) -Dmain=test_os_sem_main $< -o $@
+
+test_os_timer_gtest.o: test_os_timer.c
+	$(CC) -c $(CFLAGS) -Dmain=test_os_timer_main $< -o $@
+
+test_ring_gtest.o: test_ring.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) -Dmain=test_ring_main $< -o $@
+
+# Gtest binary links
+test_os_task_gtest.exe: test_os_task_gtest.o test_os_task_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_os_queue_gtest.exe: test_os_queue_gtest.o test_os_queue_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_os_mutex_gtest.exe: test_os_mutex_gtest.o test_os_mutex_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_os_sem_gtest.exe: test_os_sem_gtest.o test_os_sem_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_os_timer_gtest.exe: test_os_timer_gtest.o test_os_timer_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_ring_gtest.exe: test_ring_gtest.o test_ring_wrapper.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+gtests: $(GTEST_DIR) \
+        test_os_task_gtest.exe \
+        test_os_queue_gtest.exe \
+        test_os_mutex_gtest.exe \
+        test_os_sem_gtest.exe \
+        test_os_timer_gtest.exe \
+        test_ring_gtest.exe
+
+test_gtest: gtests
+	./test_os_task_gtest.exe
+	./test_os_queue_gtest.exe
+	./test_os_mutex_gtest.exe
+	./test_os_sem_gtest.exe
+	./test_os_timer_gtest.exe
+	./test_ring_gtest.exe
+
 show_objs:
 	@echo $(OBJS)
 
 ### ===== Clean =====
 clean:
 	@echo "Cleaning artifacts."
-	rm -f *~ .depend $(OBJS) *.o *.exe
+	rm -rf *~ .depend $(OBJS) *.o *.exe $(GTEST_DIR)
+
 
 ### ===== Dependencies =====
 ### Rebuild if headers change
