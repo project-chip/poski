@@ -30,6 +30,7 @@ cc_library(
         "include",
         "targets/zephyr",
     ],
+    tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
@@ -61,6 +62,7 @@ alias(
 alias(
     name = "zephyr",
     actual = ":osal_zephyr",
+    tags = ["manual"],
 )
 
 alias(
