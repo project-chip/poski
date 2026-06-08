@@ -60,9 +60,7 @@ struct pos_sem
 
 struct pos_queue
 {
-    QueueHandle_t  handle;
-    pos_signal_fn *signal_cb;       /* NULL by default */
-    void          *signal_data;
+    QueueHandle_t handle;
 };
 
 struct pos_timer

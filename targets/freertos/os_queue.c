@@ -42,7 +42,7 @@ pos_error_t pos_queue_get(struct pos_queue * queue, void * data, pos_time_t tmo)
     {
         ret = xQueueReceive(queue->handle, data, tmo);
     }
-    /* Distinguish timeout from successful receive. */
+    // Distinguish timeout from successful receive.
     return ret == pdPASS ? POS_OK : POS_TIMEOUT;
 }
 
@@ -61,17 +61,12 @@ pos_error_t pos_queue_put(struct pos_queue * queue, void * data)
     }
     else
     {
-        /* Timeout 0 + POS_EBUSY on full -- no blocking forever on
-         * portMAX_DELAY, no configASSERT crash. */
+        // Timeout 0 + POS_EBUSY on full -- no blocking forever on
+        // portMAX_DELAY, no configASSERT crash.
         ret = xQueueSendToBack(queue->handle, data, 0);
     }
     if (ret != pdPASS)
         return POS_EBUSY;
-
-    /* Post-send notification, registered via
-     * pos_queue_set_signal_cb. */
-    if (queue->signal_cb != NULL)
-        queue->signal_cb(queue->signal_data);
 
     return POS_OK;
 }
@@ -95,8 +90,6 @@ pos_error_t pos_queue_init(struct pos_queue * q, size_t msg_size, size_t max_msg
     if (q == NULL)
         return POS_INVALID_PARAM;
     q->handle = xQueueCreate(max_msgs, msg_size);
-    q->signal_cb = NULL;
-    q->signal_data = NULL;
     if (q->handle == NULL)
         return POS_ENOMEM;
     return POS_OK;
@@ -112,15 +105,4 @@ bool pos_queue_is_empty(struct pos_queue * q)
     if (pos_hw_in_isr())
         return uxQueueMessagesWaitingFromISR(q->handle) == 0;
     return uxQueueMessagesWaiting(q->handle) == 0;
-}
-
-/* Register a post-send notification.  The actual invocation
- * happens inside pos_queue_put after a successful enqueue. */
-void pos_queue_set_signal_cb(struct pos_queue * q,
-                             pos_signal_fn signal_cb, void * data)
-{
-    if (q == NULL)
-        return;
-    q->signal_cb = signal_cb;
-    q->signal_data = data;
 }
