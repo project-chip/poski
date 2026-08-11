@@ -1,6 +1,5 @@
 /*
- *    Copyright (c) 2020 Project CHIP Authors
- *    Copyright (c) 2018 Google LLC
+ *    Copyright (c) 2026 Project CHIP Authors
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,17 +19,21 @@
  * under the License.
  */
 
-#ifndef POSKI_OSAL_H
-#define POSKI_OSAL_H
+#ifndef POSKI_OS_PANIC_H
+#define POSKI_OS_PANIC_H
 
-#include "poski/osal/os_types.h"
-#include "poski/osal/os_mutex.h"
-#include "poski/osal/os_sem.h"
-#include "poski/osal/os_queue.h"
-#include "poski/osal/os_timer.h"
-#include "poski/osal/os_time.h"
-#include "poski/osal/os_task.h"
-#include "poski/osal/os_sched.h"
-#include "poski/osal/os_panic.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#endif /* POSKI_OSAL_H */
+/**
+ * @brief Halts execution immediately upon unrecoverable kernel/driver failure.
+ * @param msg Diagnostic string describing the failure condition (may be NULL).
+ */
+__attribute__((noreturn)) void pos_panic(const char *msg);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* POSKI_OS_PANIC_H */
