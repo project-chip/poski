@@ -22,22 +22,17 @@
 
 #include <stdbool.h>
 
-#if CHIP_DEVICE_LAYER_TARGET_NRF5
-#include <nrf52840.h>
+#include "FreeRTOS.h"
 
-static inline bool pos_hw_in_isr()
+/*
+ * Return true when called from an ISR context.  Uses FreeRTOS's
+ * own ARMv7-M port helper (defined in portmacro.h as a single
+ * mrs of IPSR), so this works on every M-class port without a
+ * PAL or vendor-CMSIS dependency.
+ */
+static inline bool pos_hw_in_isr(void)
 {
-    /* XXX hw specific! */
-    return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) != 0;
+    return xPortIsInsideInterrupt() == pdTRUE;
 }
 
-#else
-
-static inline bool pos_hw_in_isr()
-{
-    return false;
-}
-
-#endif // CHIP_DEVICE_LAYER_TARGET_NRF5
-
-#endif // _OS_HW_H
+#endif /* _OS_HW_H */

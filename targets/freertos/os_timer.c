@@ -30,13 +30,18 @@ static void pos_timer_cb(TimerHandle_t freertosTimer)
     timer->func(timer->arg);
 }
 
-pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn * tm_cb, void * tm_arg)
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn tm_cb, void * tm_arg)
 {
+    if (timer == NULL || tm_cb == NULL)
+        return POS_INVALID_PARAM;
     memset(timer, 0, sizeof(*timer));
     timer->func   = tm_cb;
     timer->arg    = tm_arg;
     timer->handle = xTimerCreate("timer", 1, pdFALSE, timer, pos_timer_cb);
-
+    /* Surface allocation failure instead of returning
+     * POS_OK with a NULL handle that later derefs fault on. */
+    if (timer->handle == NULL)
+        return POS_ENOMEM;
     return POS_OK;
 }
 
@@ -89,4 +94,12 @@ pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t now)
     }
 
     return rt;
+}
+
+/* Report whether the timer was successfully initialised. */
+pos_error_t pos_timer_inited(struct pos_timer * tm)
+{
+    if (tm == NULL || tm->handle == NULL)
+        return POS_ENOENT;
+    return POS_OK;
 }

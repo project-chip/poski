@@ -103,12 +103,6 @@ static inline bool pos_timer_is_active(struct pos_timer * tm)
     return xTimerIsTimerActive(tm->handle) == pdTRUE;
 }
 
-static inline pos_error_t pos_queue_init(struct pos_queue * queue, size_t msg_size, size_t max_msgs)
-{
-    queue->handle = xQueueCreate(max_msgs, msg_size);
-    return POS_OK;
-}
-
 static inline int pos_queue_inited(const struct pos_queue * queue)
 {
     return (queue->handle != NULL);
@@ -126,9 +120,14 @@ static inline pos_time_t pos_time_ticks_to_ms(pos_time_t ticks)
     return (ticks * 1000) / POS_TICKS_PER_SEC;
 }
 
+/* Dispatch on ISR context.  ISR-context calls keep the FromISR
+ * variant (with its required critical section); task-context
+ * calls drop the redundant FromISR overhead. */
 static inline pos_time_t pos_time_get(void)
 {
-    return xTaskGetTickCountFromISR();
+    return xPortIsInsideInterrupt()
+         ? xTaskGetTickCountFromISR()
+         : xTaskGetTickCount();
 }
 
 static inline pos_time_t pos_time_get_ms(void)

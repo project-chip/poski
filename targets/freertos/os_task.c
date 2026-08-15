@@ -18,6 +18,7 @@
  */
 
 #include <poski/osal/osal.h>
+#include <poski/osal/os_sched.h>
 
 #include <assert.h>
 
@@ -46,4 +47,29 @@ pos_error_t pos_task_init(struct pos_task * task, const char * name, pos_task_fu
     err = xTaskCreate(pos_task_dispatch, name, stack_size / sizeof(pos_base_t), task, prio, &task->handle);
 
     return (err == pdPASS) ? POS_OK : POS_ENOMEM;
+}
+
+/* Abort a task and reclaim its TCB/stack. */
+pos_error_t pos_task_remove(struct pos_task * t)
+{
+    TaskHandle_t h;
+
+    if (t == NULL || t->handle == NULL)
+        return POS_INVALID_PARAM;
+    /* Clear t->handle BEFORE vTaskDelete: when a task self-
+     * deletes, vTaskDelete does not return and the post-call
+     * NULL-out would never execute, leaving a stale handle that
+     * a peer caller could re-invoke vTaskDelete on. */
+    h = t->handle;
+    t->handle = NULL;
+    vTaskDelete(h);
+    return POS_OK;
+}
+
+/* Public-API shim for the existing inline pos_os_started()
+ * helper in os_port.h.  Kept inline + bridge to avoid renaming the
+ * internal helper that other backend code already uses. */
+bool pos_sched_started(void)
+{
+    return pos_os_started();
 }
