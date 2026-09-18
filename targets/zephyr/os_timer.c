@@ -16,69 +16,93 @@
  *    limitations under the License.
  */
 
-#include <chip/osal.h>
+#include <poski/osal/osal.h>
 
 static void zephyr_timer_wrapper(struct k_timer * timer_id)
 {
-    struct chip_os_timer * timer = CONTAINER_OF(timer_id, struct chip_os_timer, timer);
-    if (timer->cb) {
+    struct pos_timer * timer = CONTAINER_OF(timer_id, struct pos_timer, timer);
+    if (timer->cb)
+    {
         timer->cb(timer->arg);
     }
 }
 
-chip_os_error_t chip_os_timer_init(struct chip_os_timer * timer, chip_os_timer_fn cb, void * arg)
+pos_error_t pos_timer_init(struct pos_timer * timer, pos_timer_fn cb, void * arg)
 {
+    if (timer == NULL || cb == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
     k_timer_init(&timer->timer, zephyr_timer_wrapper, NULL);
-    timer->cb = cb;
+    timer->cb  = cb;
     timer->arg = arg;
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_start_ms(struct chip_os_timer * timer, chip_os_time_t duration)
+pos_error_t pos_timer_start_ms(struct pos_timer * timer, pos_time_t duration)
 {
+    if (timer == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
     k_timer_start(&timer->timer, K_MSEC(duration), K_NO_WAIT);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_start(struct chip_os_timer * timer, chip_os_time_t ticks)
+pos_error_t pos_timer_start(struct pos_timer * timer, pos_time_t ticks)
 {
+    if (timer == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
     k_timer_start(&timer->timer, K_TICKS(ticks), K_NO_WAIT);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_stop(struct chip_os_timer * timer)
+pos_error_t pos_timer_stop(struct pos_timer * timer)
 {
+    if (timer == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
     k_timer_stop(&timer->timer);
-    return CHIP_OS_OK;
+    return POS_OK;
 }
 
-chip_os_error_t chip_os_timer_inited(struct chip_os_timer * timer)
+pos_error_t pos_timer_inited(struct pos_timer * timer)
 {
-    return CHIP_OS_OK;
+    return (timer != NULL) ? POS_OK : POS_ENOENT;
 }
 
-bool chip_os_timer_is_active(struct chip_os_timer * timer)
+bool pos_timer_is_active(struct pos_timer * timer)
 {
-    return k_timer_remaining_ticks(&timer->timer) > 0;
+    return (timer != NULL) && (k_timer_remaining_ticks(&timer->timer) > 0);
 }
 
-chip_os_time_t chip_os_timer_get_ticks(struct chip_os_timer * timer)
+pos_time_t pos_timer_get_ticks(struct pos_timer * timer)
 {
-    // Not easily supported by Zephyr without storing it.
-    return 0;
+    if (timer == NULL)
+    {
+        return 0;
+    }
+    return pos_time_get() + (pos_time_t) k_timer_remaining_ticks(&timer->timer);
 }
 
-chip_os_time_t chip_os_timer_remaining_ticks(struct chip_os_timer * timer, chip_os_time_t time)
+pos_time_t pos_timer_remaining_ticks(struct pos_timer * timer, pos_time_t time)
 {
-    return (chip_os_time_t)k_timer_remaining_ticks(&timer->timer);
+    (void) time;
+    return (timer != NULL) ? (pos_time_t) k_timer_remaining_ticks(&timer->timer) : 0;
 }
 
-void chip_os_timer_arg_set(struct chip_os_timer * timer, void * arg)
+void pos_timer_arg_set(struct pos_timer * timer, void * arg)
 {
-    timer->arg = arg;
+    if (timer != NULL)
+    {
+        timer->arg = arg;
+    }
 }
 
-void * chip_os_timer_arg_get(struct chip_os_timer * timer)
+void * pos_timer_arg_get(struct pos_timer * timer)
 {
-    return timer->arg;
+    return (timer != NULL) ? timer->arg : NULL;
 }

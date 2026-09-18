@@ -56,4 +56,18 @@ struct pos_sem
     struct k_sem sem;
 };
 
+struct pos_eventq
+{
+    struct k_fifo fifo;
+    bool inited;
+};
+
+struct pos_event_timer
+{
+    struct k_timer timer;
+    struct pos_eventq * evq;
+    struct pos_event ev;
+    pos_time_t ticks;
+};
+
 #endif // POSKI_OS_ZEPHYR_TYPES_H
