@@ -32,5 +32,6 @@
 #include "poski/osal/os_task.h"
 #include "poski/osal/os_sched.h"
 #include "poski/osal/os_panic.h"
+#include "poski/osal/os_crit.h"
 
 #endif /* POSKI_OSAL_H */

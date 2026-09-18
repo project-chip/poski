@@ -148,6 +148,7 @@ all: $(LIB_NAME) depend                       \
      test_os_mutex.$(TARGET_EXT)  \
      test_os_sem.$(TARGET_EXT)    \
      test_os_timer.$(TARGET_EXT)  \
+     test_os_crit.$(TARGET_EXT)   \
      test_os_ring.$(TARGET_EXT)   \
      test_os_task_cpp.$(TARGET_EXT) \
      test_os_queue_cpp.$(TARGET_EXT) \
@@ -169,6 +170,9 @@ test_os_sem.exe: test_os_sem.o $(OBJS)
 	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 test_os_timer.exe: test_os_timer.o $(OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+test_os_crit.exe: test_os_crit.o $(OBJS)
 	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 test_os_ring.exe: test_os_ring.o $(OBJS)
@@ -195,6 +199,7 @@ test: all
 	./test_os_mutex.exe
 	./test_os_sem.exe
 	./test_os_timer.exe
+	./test_os_crit.exe
 	./test_os_ring.exe
 	./test_os_task_cpp.exe
 	./test_os_queue_cpp.exe
@@ -280,6 +285,9 @@ test_os_task_cpp_gtest.o: test_os_task_cpp_gtest.cpp
 test_os_timer_cpp_gtest.o: test_os_timer_cpp_gtest.cpp
 	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) $< -o $@
 
+test_os_crit_cpp_gtest.o: test_os_crit_cpp_gtest.cpp
+	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) $< -o $@
+
 test_os_ring_cpp_gtest.o: test_os_ring_cpp_gtest.cpp
 	$(CPP) -std=c++14 -c $(CFLAGS) $(GTEST_INCLUDES) $< -o $@
 
@@ -318,6 +326,9 @@ test_os_semaphore_cpp_gtest.exe: test_os_semaphore_cpp_gtest.o $(OBJS) $(GTEST_O
 test_os_timer_cpp_gtest.exe: test_os_timer_cpp_gtest.o $(OBJS) $(GTEST_OBJS)
 	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
+test_os_crit_cpp_gtest.exe: test_os_crit_cpp_gtest.o $(OBJS) $(GTEST_OBJS)
+	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+
 test_os_ring_cpp_gtest.exe: test_os_ring_cpp_gtest.o $(OBJS) $(GTEST_OBJS)
 	$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
@@ -333,6 +344,7 @@ gtests: $(GTEST_DIR) \
         test_os_mutex_cpp_gtest.exe \
         test_os_semaphore_cpp_gtest.exe \
         test_os_timer_cpp_gtest.exe \
+        test_os_crit_cpp_gtest.exe \
         test_os_ring_cpp_gtest.exe
 
 test_gtest: gtests
@@ -347,6 +359,7 @@ test_gtest: gtests
 	./test_os_mutex_cpp_gtest.exe
 	./test_os_semaphore_cpp_gtest.exe
 	./test_os_timer_cpp_gtest.exe
+	./test_os_crit_cpp_gtest.exe
 	./test_os_ring_cpp_gtest.exe
 
 show_objs:

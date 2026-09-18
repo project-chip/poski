@@ -243,6 +243,25 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "test_os_crit",
+    srcs = ["tests/test_os_crit.c"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_crit_cpp_gtest",
+    srcs = ["tests/test_os_crit_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 test_suite(
     name = "test",
     tests = [
@@ -251,6 +270,7 @@ test_suite(
         ":test_os_mutex",
         ":test_os_sem",
         ":test_os_timer",
+        ":test_os_crit",
         ":test_os_ring",
         ":test_os_task_cpp",
         ":test_os_queue_cpp",
@@ -274,6 +294,7 @@ test_suite(
         ":test_os_mutex_cpp_gtest",
         ":test_os_semaphore_cpp_gtest",
         ":test_os_timer_cpp_gtest",
+        ":test_os_crit_cpp_gtest",
         ":test_os_ring_cpp_gtest",
     ],
 )

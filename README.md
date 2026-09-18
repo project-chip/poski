@@ -33,6 +33,7 @@ POSKI provides abstractions for:
 | [Task](#task)              | `<poski/osal/os_task.h>`  | `poski::OsTask`        | Independent threads of execution            |
 | [Mutex](#mutex)            | `<poski/osal/os_mutex.h>` | `poski::OsMutex`       | Recursive mutual exclusion                  |
 | [Semaphore](#semaphore)    | `<poski/osal/os_sem.h>`   | `poski::OsSemaphore`   | Counting semaphores                         |
+| [Critical section](#critical-section) | `<poski/osal/os_crit.h>` | `poski::OsCriticalSection` | Interrupt-masking mutual exclusion |
 | [Queue](#queue)            | `<poski/osal/os_queue.h>` | `poski::OsQueue<T, N>` | Fixed-size message queues (copy semantics)  |
 | [Timer](#timer)            | `<poski/osal/os_timer.h>` | `poski::OsTimer`       | One-shot software timers                    |
 | [Time](#time)              | `<poski/osal/os_time.h>`  | `poski::OsTime`        | System time and tick/millisecond conversion |
@@ -411,6 +412,20 @@ block one task until it is released by a signal from another task or
 interrupt. `pos_sem_init()` sets the initial token count, `pos_sem_take()`
 waits for a token, and `pos_sem_give()` releases one. Both are ISR-safe.
 
+### Critical Section
+
+`<poski/osal/os_crit.h>` · `poski::OsCriticalSection` / `poski::OsAtomicGuard`
+
+A critical section provides nestable, short-duration protection for atomic
+code sequences by masking interrupts (`pos_crit_enter()` / `pos_crit_exit()`,
+with `pos_atomic_enter()` / `pos_atomic_exit()` aliases). The native interrupt
+state is saved in `pos_crit_state_t` (`uintptr_t`) and must be restored in
+LIFO order.
+
+`pos_crit_is_active()` reports whether the calling execution context is
+inside a critical section, and `pos_crit_in_isr()` reports whether execution
+is inside an Interrupt Service Routine.
+
 ### Queue
 
 `<poski/osal/os_queue.h>` · `struct pos_queue` · `poski::OsQueue<T, N>`
@@ -502,6 +517,7 @@ implementations:
 ├── MODULE.bazel              - Bzlmod dependencies (rules_cc, googletest, FreeRTOS kernel)
 ├── Makefile                  - Convenience wrapper around tests/Makefile
 ├── include/poski
+│   ├── OsCriticalSection.h   - C++ RAII guard for pos_crit / pos_atomic
 │   ├── OsMutex.h             - C++ wrapper for pos_mutex
 │   ├── OsQueue.h             - C++ template wrapper for pos_queue
 │   ├── OsRing.h              - Portable ring buffer class
@@ -510,6 +526,7 @@ implementations:
 │   ├── OsTime.h              - C++ wrapper for pos_time
 │   ├── OsTimer.h             - C++ wrapper for pos_timer
 │   └── osal
+│       ├── os_crit.h         - Critical section / interrupt masking C API
 │       ├── os_mutex.h        - Mutex C API
 │       ├── os_panic.h        - Fatal error (panic) C API
 │       ├── os_queue.h        - Message queue C API
@@ -575,6 +592,7 @@ targets/posix
 │   ├── os_port.h             - Port header included by <poski/osal/os_types.h>
 │   ├── os_time.h             - Time and timer types (pos_time_t, POS_TIME_*, struct pos_timer)
 │   └── os_types.h            - Task, mutex, semaphore, and queue types; task priorities
+├── os_crit.c                 - Implementation of pos_crit
 ├── os_mutex.c                - Implementation of pos_mutex
 ├── os_panic.c                - Implementation of pos_panic
 ├── os_queue.cc               - Implementation of pos_queue (C++, using RingPthread)
