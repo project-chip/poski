@@ -78,6 +78,20 @@ struct pos_task
     void * arg;
 };
 
+struct pos_eventq
+{
+    struct pos_event * head;
+    struct pos_event * tail;
+    SemaphoreHandle_t sem;
+};
+
+struct pos_event_timer
+{
+    struct pos_timer timer;
+    struct pos_eventq * evq;
+    struct pos_event ev;
+};
+
 static inline bool pos_os_started(void)
 {
     return xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
