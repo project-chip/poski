@@ -31,9 +31,22 @@
 extern "C" {
 #endif
 
+struct pos_event;
+struct pos_eventq;
+struct pos_event_timer;
+
 typedef void pos_timer_fn(void * arg);
 typedef void pos_signal_fn(void * arg);
+typedef void pos_event_fn(struct pos_event * ev);
 typedef void * (*pos_task_func_t)(void *);
+
+struct pos_event
+{
+    struct pos_event * next;
+    pos_event_fn * fn;
+    void * arg;
+    bool queued;
+};
 
 enum pos_error
 {

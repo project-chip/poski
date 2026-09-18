@@ -72,4 +72,20 @@ struct pos_sem
 #endif
 };
 
+struct pos_eventq
+{
+    struct pos_event * head;
+    struct pos_event * tail;
+    pthread_mutex_t lock;
+    pthread_cond_t cond;
+    bool inited;
+};
+
+struct pos_event_timer
+{
+    struct pos_timer timer;
+    struct pos_eventq * evq;
+    struct pos_event ev;
+};
+
 #endif // POSKI_OS_POSIX_TYPES_H
