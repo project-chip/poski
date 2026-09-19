@@ -1,322 +1,225 @@
-# CHIP Operating System Abstraction Layer (OSAL)
+# POSKI — Portable Operating System Kernel Interface (OSAL)
 
-POSKI (Portable Operating System Kernel Interface) is an OSAL used within Project CHIP.
-POSKI acts as a 'POSIX for embedded,' providing a thin abstraction layer that ensures 
-seamless application portability across different RTOS targets.
+POSKI (Portable Operating System Kernel Interface) is a lightweight Operating System Abstraction Layer (OSAL) originally developed within Project CHIP.
+POSKI acts as a "POSIX for embedded," providing a thin C and C++ abstraction layer that ensures seamless application portability across different RTOS and host targets.
 
-By bridging kernels like FreeRTOS, Zephyr, and POSIX, POSKI empowers a single codebase
-to traverse the entire lifecycle: host-based simulation, bring-up testing, and the
-final production environment.
-This ensures long-term portability, future-proofing applications against RTOS shifts 
-while ending platform fragmentation.
+By bridging kernels like FreeRTOS, Zephyr, RT-Thread, and POSIX (Linux/macOS), POSKI empowers a single codebase to traverse the entire development lifecycle: host-based simulation, bring-up testing, and the final production environment.
+This ensures long-term portability, future-proofing applications against RTOS shifts while ending platform fragmentation.
 
-The name POSKI is used to diambiguate the CHIP OSAL from external OSAL used by
-other projects or vendor SDKs.
+The name POSKI (and the `pos_` / `poski::` namespace) disambiguates this OSAL from external OSAL layers used by other projects or vendor SDKs.
 
 ## Introduction
 
-The CHIP OSAL is designed to provide a thin adaptation layer for portability of
-the example applications and common portions of the DeviceLayer to a range of
-Real Time Operating Systems (RTOS). The intent is to leverage native OS
-primitives as much as possible while providing a unified interface surface for
-those primitives to the rest of the CHIP system, and to deliver common OS
-functionality suitable for deeply embedded environments.
+POSKI is designed to provide a thin adaptation layer for portability of embedded applications and device layers across a wide range of Real-Time Operating Systems (RTOS) and host platforms. The intent is to leverage native OS primitives directly while providing a unified C and C++ interface surface suitable for deeply embedded environments.
 
-CHIP OSAL provides abstractions for:
+POSKI provides C (`<poski/osal/*.h>`) and C++ (`<poski/Os*.h>`) abstractions for:
 
--   [tasks](#Task) (aka threads)
--   [mutex](#Mutex)
--   [semaphores](#Semaphore)
--   [queues](#Queue)
--   [timers](#Timer)
--   [time](#Time)
+-   [Tasks](#Task) (`pos_task` / `poski::OsTask`)
+-   [Mutexes](#Mutex) (`pos_mutex` / `poski::OsMutex`)
+-   [Semaphores](#Semaphore) (`pos_sem` / `poski::OsSemaphore`)
+-   [Message Queues](#Queue) (`pos_queue` / `poski::OsQueue`)
+-   [Software Timers](#Timer) (`pos_timer` / `poski::OsTimer`)
+-   [System Time](#Time) (`pos_time` / `poski::OsTime`)
+-   [Scheduler Control](#Scheduler) (`pos_sched`)
+-   [Fatal Panic Handling](#Panic) (`pos_panic`)
+-   [Ring Buffers](#Ring-Buffer) (`poski::OsRing`)
 
-CHIP OSAL currently supports the above abstractions for the following OS
-targets:
+POSKI currently supports the following OS targets:
 
--   POSIX (linux) - Linux and other standard POSIX systems
--   POSIX (apple) - Apple and other Mach kernel systems using dispatch
-
-Implementations for the following targets are planned:
-
--   FreeRTOS
--   Zephyr
+-   **POSIX (Linux)** (`targets/posix`) — Standard POSIX pthreads, semaphores, and timers
+-   **POSIX (macOS / Apple)** (`targets/posix`) — POSIX pthreads with Grand Central Dispatch (`dispatch`) timers and semaphores
+-   **FreeRTOS** (`targets/freertos`) — Native FreeRTOS tasks, queues, semaphores, mutexes, and timers
+-   **Zephyr RTOS** (`targets/zephyr`) — Native Zephyr kernel threads, `k_msgq`, `k_mutex`, `k_sem`, and `k_timer`
+-   **RT-Thread RTOS** (`targets/rt-thread`) — Native RT-Thread kernel primitives
 
 ### Motivation
 
-Project CHIP has explicit goals to provide a unifying, interoperable, versatile,
-low overhead, and robust connected home solution with explicit focus on
-time-to-market. These goals require the platform layer design to be highly
-scalable, allowing disparate and diverse platforms to be integrated with high
-velocity. To support rapid integration of new platforms in a scalable and
-maintainable way requires:
+Embedded software platforms require the system abstraction layer to be scalable, allowing disparate and diverse hardware and RTOS targets to be integrated with high velocity. Supporting rapid integration of new platforms in a scalable and maintainable way requires:
 
--   Maximum reuse of code, verification, and testing
+-   Maximum reuse of code, verification, and host-side unit testing
 -   Minimum code fragmentation, forking, and conditional compilation
--   Adaptable and thin pathway to optimized native APIs
+-   Adaptable and thin pathway to optimized native RTOS APIs
 
-Device platforms tend to be highly unique on the first order, but also pivot on
-three major areas of common functionality. These areas of commonality define a
-three dimensional matrix of possible device configurations where a shared point
-on any one axis can allow code reuse across otherwise disparate platorms:
+Device platforms tend to pivot on three major axes of common functionality, defining a three-dimensional matrix of configurations where a shared point on any one axis enables code reuse across otherwise disparate platforms:
 
--   Device (board)
+-   **Device (Board)**
+    -   Platforms that share a specific choice of chip combinations and wiring at the PCB level can share a common board/device port.
+    -   Target examples are silicon vendor development boards or final product PCBs.
 
-    -   Platforms that share a specific choice of chip combinations and wiring
-        at the PCB level can share a common DeviceLayer port.
-    -   The DeviceLayer provides the minimum interface required to interface
-        CHIP to all the HW-specific details of a device such as BLE, WiFi,
-        storage.
-    -   Target examples are silicon vendor development boards or final product
-        PCBs.
-    -   A DeviceLayer is able to own all decisions about a device and impose
-        hard assumptions on the particular combination of board + os + hw.
-    -   A DeviceLayer is free to use an abstraction of the underlying OS or HW
-        layers to provide better portability between different RTOS environments
-        or across a family of SoCs.
+-   **Operating System (OS)**
+    -   Platforms that share a common OS or RTOS share a common POSKI target port (`targets/freertos`, `targets/zephyr`, `targets/posix`, `targets/rt-thread`).
+    -   An application or driver stack written against POSKI can run unchanged in Linux/macOS host unit tests and on target RTOS firmware.
 
--   Operating System (os)
-
-    -   Platforms that share a common OS or RTOS can share a common OSAL port.
-    -   Target examples are FreeRTOS, Zephyr, Linux, Mac, ...
-    -   A given app or device layer port codebase may want to be retargetted
-        from one OS to another. This could happen during an upgrade cycle for
-        instance, or a new product may want to use a particular device layer
-        port that CHIP provides, but port it to the RTOS they typically use.
-
--   Hardware (hw / chip)
-    -   Platforms that share a common chipset, SoC, or silicon can share a
-        common Hardware Abstraction Layer (HAL) from the vendor SDK.
-    -   By leveraging a HAL, the same application can be retargetted to
-        different chipsets across a family of similar SoCs.
-
-The primary motivation of the CHIP OSAL is to enable code sharing and reuse in
-the example applications and DeviceLayer. Rather than have a separate example
-app each combination of hw + os + board, the CHIP OSAL allows an example app to
-be written in a common way and be retargeted for different OS/RTOS such as
-FreeRTOS, Zephyr, Linux, etc. The CHIP OSAL is intended to help make the system
-more scalable as the matrix of combinations of hw + os + app increases over
-time.
+-   **Hardware (HW / SoC)**
+    -   Platforms that share a common chipset, SoC, or silicon share a common Hardware Abstraction Layer (HAL) from the vendor SDK.
 
 ### Context
 
-There is a long history of OSAL layers. Why does CHIP need its own?
-
-While it is true the CHIP OSAL is "Yet Another OSAL", it is one that was
-designed to meet the specific requirements for Project CHIP. Other OSAL projects
-were considered, some with common contributors to CHIP OSAL, but each had gaps
-relative the requirements for Project CHIP:
+Why POSKI? Other embedded OSAL projects were evaluated, but each had gaps relative to POSKI's goals:
 
 -   [nler](https://github.com/nestlabs/nler) - Nest Labs Embedded Runtime
+    -   Uses an inconsistent API namespace, whereas all POSKI C functions predictably begin with `pos_` (and C++ classes live in `namespace poski`).
+    -   Omits standard primitives such as counting semaphores.
+    -   Imposes its own centralized timer system rather than providing a thin pass-through to native OS timers.
 
-    -   Uses event queues with event pointer semantics whereas CHIP uses message
-        queues with copy semantics.
-    -   Has an inconsistant API namespace. All CHIP OSAL functions predictably
-        begin with `chip_os`.
-    -   Was designed to enforce a particular embedded programming philosophy.
-        Semaphores are notably missing for example.
-    -   Imposes its own centralized timer system rather than providing a thin
-        pass-through to native OS timers.
-    -   Centralized timer system relies on nler event queues, which are
-        antithetical to the CHIP messsage queue paradigm.
-
--   [npl](https://github.com/apache/mynewt-nimble/tree/master/porting/npl) -
-    MyNewt NimBLE Platform Layer
-    -   Uses event queues with event pointer semantics whereas CHIP uses message
-        queues with copy semantics.
-    -   Is embedded within a larger BLE stack project and as such isn't easily
-        composable as a submodule.
-    -   Uses a consistent, but domain specic API namespace: `ble_npl`
+-   [npl](https://github.com/apache/mynewt-nimble/tree/master/porting/npl) - Mynewt NimBLE Porting Layer
+    -   Embedded within a larger BLE stack project and relies heavily on port-level `static inline` duck typing rather than a formal standalone OSAL specification.
+    -   Uses a domain-specific BLE namespace (`ble_npl_`).
 
 ---
 
 ## Reference
 
-### Task
+### Task (`<poski/osal/os_task.h>` / `<poski/OsTask.h>`)
 
-A task is an independent context of code execution that runs without any
-dependency on other concurrent tasks within the system. Only one task runs at
-any given time. The scheduler starts and stops tasks as necessary to manage
-resources according to the priorities and policies of the system. A task has no
-knowledge of the underlying scheduler activity and can be swapped in and out,
-but will always run with a consistent execution context and stack.
+A task (`struct pos_task` / `poski::OsTask`) is an independent context of code execution managed by the underlying scheduler according to priority and scheduling policy (`pos_task_init`, `pos_task_remove`, `pos_task_yield`, `pos_task_sleep`, `pos_task_sleep_ms`).
 
-### Mutex
+### Mutex (`<poski/osal/os_mutex.h>` / `<poski/OsMutex.h>`)
 
-A mutex provides a locking mechanism for enforcing mutual exclusion and
-protection of shared resources between independent paths of execution such as
-different tasks or interrupts.
+A mutex (`struct pos_mutex` / `poski::OsMutex`) provides recursive mutual exclusion for protecting shared resources across tasks (`pos_mutex_init`, `pos_mutex_lock`, `pos_mutex_unlock`, `pos_mutex_deinit`).
 
-### Semaphore
+### Semaphore (`<poski/osal/os_sem.h>` / `<poski/OsSemaphore.h>`)
 
-A semaphore is a synchronization primitive which provides a means to block one
-task until it is released by a signal from another task or interrupt.
+A counting semaphore (`struct pos_sem` / `poski::OsSemaphore`) provides task synchronization and signaling from tasks or Interrupt Service Routines (`pos_sem_init`, `pos_sem_take`, `pos_sem_give`).
 
-### Queue
+### Queue (`<poski/osal/os_queue.h>` / `<poski/OsQueue.h>`)
 
-A queue is a basic primitive for intertask communication. A queue can be used to
-send messages from a task or interrupt producer to a consumer task using copy
-semantics.
+A message queue (`struct pos_queue` / `poski::OsQueue<T, N>`) provides thread- and ISR-safe intertask communication of fixed-size messages using copy semantics (`pos_queue_init`, `pos_queue_put`, `pos_queue_get`, `pos_queue_is_empty`, `pos_queue_deinit`).
 
-### Timer
+### Timer (`<poski/osal/os_timer.h>` / `<poski/OsTimer.h>`)
 
-A timer triggers a callback function after a given amount of time has passed.
+A software timer (`struct pos_timer` / `poski::OsTimer`) triggers a callback function after a specified duration in ticks or milliseconds (`pos_timer_init`, `pos_timer_start`, `pos_timer_start_ms`, `pos_timer_stop`, `pos_timer_is_active`, `pos_timer_remaining_ticks`).
 
-### Time
+### Time (`<poski/osal/os_time.h>` / `<poski/OsTime.h>`)
 
-A collection of utility functions for getting current system time and converting
-between milliseconds and CPU ticks is provided.
+Utility functions (`pos_time_get`, `pos_time_get_ms`, `pos_time_ms_to_ticks`, `pos_time_ticks_to_ms`) for querying system uptime and converting between milliseconds and OS ticks.
 
-## Porting guide
+### Scheduler (`<poski/osal/os_sched.h>`)
 
-The CHIP OSAL module is structured as follows:
+Controls and queries the underlying RTOS scheduler state (`pos_sched_start`, `pos_sched_started`).
 
-| File / Folder           | Contents                                                            |
-| ----------------------- | ------------------------------------------------------------------- |
-| src/include/chip/osal.h | Public header with complete CHIP OSAL API                           |
-| src/osal/include        | Common headers and utilitied that can be shared by ports            |
-| src/osal/tests          | Implements portable tests of CHIP OSAL APIs                         |
-| src/osal/<port>         | Implements OSAL API for a given platform <port>                     |
-| <port>/chip/os_port.h   | Maps OSAL types to platform-specific definitions for a given <port> |
+### Panic (`<poski/osal/os_panic.h>`)
 
-### Layout Details
+Provides an unrecoverable fatal error handler primitive (`pos_panic(const char *msg)`) that logs diagnostic context and halts or aborts execution.
 
-```
+### Ring Buffer (`<poski/OsRing.h>`)
+
+Provides a portable C++ ring buffer (`poski::OsRing`) for byte and element buffering.
+
+---
+
+## Porting Guide & Repository Layout
+
+POSKI separates its public interface headers cleanly from target-specific implementations:
+
+| File / Folder | Contents |
+| :--- | :--- |
+| `include/poski/osal/osal.h` | Top-level C umbrella header including all POSKI OSAL modules |
+| `include/poski/osal/os_*.h` | Modular C OSAL interface headers (`os_task.h`, `os_mutex.h`, `os_sem.h`, `os_queue.h`, `os_timer.h`, `os_time.h`, `os_sched.h`, `os_panic.h`, `os_types.h`) |
+| `include/poski/Os*.h` | Header-only C++ RAII wrapper classes (`OsTask.h`, `OsMutex.h`, `OsSemaphore.h`, `OsQueue.h`, `OsTimer.h`, `OsTime.h`, `OsRing.h`) |
+| `targets/<port>/poski/osal/os_port.h` | Maps POSKI `struct pos_*` types to target-specific RTOS primitives |
+| `targets/<port>/os_*.c` | Target implementation of POSKI C APIs for `<port>` (`posix`, `freertos`, `zephyr`, `rt-thread`) |
+| `tests/` | Portable C, C++, and GoogleTest (`gtest`) test suites |
+
+### Directory Structure
+
+```text
 .
-├── src/osal              - Top level of CHIP OSAL submodule
-├── include
-│   └── Ring.h            - A portable ring buffer class for common use
-├── README.md             - This document
-└── tests
-    ├── Makefile.am       - Primary automake file
-    ├── Makefile.mk       - Developer utility make file for running the tests
-    ├── test_os_mutex.c   - Test of chip_os_mutex
-    ├── test_os_queue.c   - Test of chip_os_queue
-    ├── test_os_sem.c     - Test of chip_os_sem
-    ├── test_os_task.c    - Test of chip_os_task
-    ├── test_os_timer.c   - Test of chip_os_timer
-    ├── test_ring.cpp     - Test of Ring.h
-    └── test_util.h       - Common test utilities
+├── BUILD                     - Bazel build rules for libraries and test suites
+├── MODULE.bazel              - Bzlmod dependency definitions (rules_cc, googletest, freertos)
+├── Makefile                  - GNU Make wrapper
+├── include/poski
+│   ├── OsMutex.h             - C++ wrapper for pos_mutex
+│   ├── OsQueue.h             - C++ template wrapper for pos_queue
+│   ├── OsRing.h              - Portable ring buffer class
+│   ├── OsSemaphore.h         - C++ wrapper for pos_sem
+│   ├── OsTask.h              - C++ wrapper for pos_task
+│   ├── OsTime.h              - C++ wrapper for pos_time
+│   ├── OsTimer.h             - C++ wrapper for pos_timer
+│   └── osal
+│       ├── os_mutex.h        - Mutex C API
+│       ├── os_panic.h        - Fatal error panic C API
+│       ├── os_queue.h        - Message queue C API
+│       ├── os_sched.h        - Scheduler control C API
+│       ├── os_sem.h          - Semaphore C API
+│       ├── os_task.h         - Task management C API
+│       ├── os_time.h         - System time & tick conversion C API
+│       ├── os_timer.h        - Software timer C API
+│       ├── os_types.h        - Common POSKI types and error codes (pos_error_t)
+│       └── osal.h            - Umbrella C header
+├── targets
+│   ├── freertos/             - FreeRTOS target port
+│   ├── posix/                - POSIX (Linux & macOS) target port
+│   ├── rt-thread/            - RT-Thread RTOS target port
+│   └── zephyr/               - Zephyr RTOS target port
+└── tests/                    - C, C++, and GTest unit test suites
 ```
 
-#### POSIX Port Layout
+#### POSIX Port Details
 
-The POSIX port includes both Linux and Apple implementations.
+The POSIX port (`targets/posix`) supports both Linux and Apple (macOS) hosts:
 
-Linux uses the standard POSIX APIs for all functionality.
+| OS | Task | Mutex | Semaphore | Timer | Time | Queue |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Linux** | `pthread` | `pthread_mutex` | `sem_t` | `timer_create` | `clock_gettime` | `pthread` + `RingPthread` |
+| **macOS** | `pthread` | `pthread_mutex` | `dispatch_semaphore` | `dispatch_source` | `mach_absolute_time` | `pthread` + `RingPthread` |
 
-Apple uses POSIX pthreads but also Grand Central dispatch for the timer and
-semaphore implementations.
-
-| OS    | Task    | Mutex | Sem      | Timer    | Time  | Queue          |
-| ----- | ------- | ----- | -------- | -------- | ----- | -------------- |
-| Linux | pthread | posix | posix    | posix    | posix | pthread + ring |
-| MacOS | pthread | posix | dispatch | dispatch | mach  | pthread + ring |
-
-```
-├── src/osal               - Top level of CHIP OSAL submodule
-├── posix
-│   ├── chip
-│   │   ├── os_port.h      - Primary port-specific header to hook into public src/include/chip/osal.h
-│   │   ├── os_time.h      - Types related to time and timers
-│   │   └── os_types.h     - All other CHIP OSAL types
-│   ├── os_mutex.c         - Implementation of chip_os_mutex
-│   ├── os_queue.cc        - Implementation of chip_os_queue
-│   ├── os_sem.c           - Implementation of chip_os_sem
-│   ├── os_task.c          - Implementation of chip_os_task
-│   ├── os_time.c          - Implementation of chip_os_time
-│   ├── os_timer.c         - Implementation of chip_os_timer
-│   ├── os_utils.c         - Shared code for the posix port, most notably error mapping.
-│   ├── os_utils.h         - Shared header for the posix port, most notably nlassert code utility macros.
-│   └── RingPthread.h      - Thread-safe version of Ring using posix mutex and cond
-```
-
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Make
-- Bazel
-- GTest
-
+- **Bazel** (recommended, builds hermetic dependencies including GoogleTest and FreeRTOS kernel)
+- **Make** (optional convenience wrapper)
 
 #### Linux
-
-For standard prerequisites (Make, Ccache, Bazel):
 ```bash
 sudo apt install make ccache bazel
 ```
 
-#### Mac
-
-```
-brew install make ccache bazel gtest
+#### macOS
+```bash
+brew install make ccache bazel
 ```
 
 ### Build
 
-#### Make
-
-To build only the **POSIX/Linux** library target (`libosal.a`) and tests:
-```bash
-$ make
-```
-
-To build the **FreeRTOS** static library target (`libosal_freertos.a`) and firmware hex binaries (requires Nordic SDK):
-```bash
-# Export the path to Nordic SDK
-$ export NRF5_SDK_ROOT=/path/to/nRF5_SDK_17.1.0_ddde560
-
-# Compile FreeRTOS library and hex targets
-$ PLATFORM=nrf52840 make
-```
-
 #### Bazel
 
-By default, `bazel build //:all` will attempt to build targets for all supported platforms, including Zephyr (which will fail if you don't have the Zephyr SDK installed).
-
-To build only the **POSIX/Linux** library target:
+To build all default targets (including `:osal_posix`, `:osal_freertos`, and all unit test binaries):
 ```bash
-$ bazel build //:osal
+bazel build //...
+```
+*(Note: `:osal_zephyr` is tagged `manual` so wildcard builds `//...` succeed without requiring a full Zephyr workspace.)*
+
+To build only the **POSIX** library target (`:osal` / `:osal_posix`):
+```bash
+bazel build //:osal
 ```
 
-To build only the **FreeRTOS** library target (`osal_freertos` / `freertos` alias):
+To build the **FreeRTOS** static library target (`:freertos` / `:osal_freertos`):
 ```bash
-# Builds osal_freertos.
-$ bazel build //:freertos
-```
-
-To build the POSIX/Linux test binaries:
-```bash
-$ bazel build //:test //:gtest
+bazel build //:freertos
 ```
 
 ### Test
 
-#### Make
-
-To run the standard tests:
-```bash
-$ make test
-```
-
-To run the Google Test (gtest) suite (which automatically downloads and builds gtest locally):
-```bash
-$ make gtest
-```
-
 #### Bazel
 
-To run the standard tests:
+To run the entire test suite (C tests, C++ tests, and GoogleTest suites):
 ```bash
-$ bazel test //:test
+bazel test //...
 ```
 
-To run the Google Test (gtest) suite:
+To run only the standard C/C++ test suite or only the GoogleTest suite:
 ```bash
-$ bazel test //:gtest
+bazel test //:test
+bazel test //:gtest
 ```
 
-
-
+#### Make
+```bash
+make test
+make gtest
+```
