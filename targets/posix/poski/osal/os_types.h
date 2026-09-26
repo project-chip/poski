@@ -72,10 +72,17 @@ struct pos_sem
 #endif
 };
 
+/*
+ * Event queue: an intrusive FIFO of events plus the list of event timers bound
+ * to the queue that are still pending, sorted by expiry.  Expired timers are
+ * moved onto the FIFO whenever the queue is accessed, and blocking gets wait
+ * no longer than the earliest pending expiry, so no timer threads are needed.
+ */
 struct pos_eventq
 {
     struct pos_event * head;
     struct pos_event * tail;
+    struct pos_event_timer * timers;
     pthread_mutex_t lock;
     pthread_cond_t cond;
     bool inited;
@@ -83,9 +90,11 @@ struct pos_eventq
 
 struct pos_event_timer
 {
-    struct pos_timer timer;
-    struct pos_eventq * evq;
     struct pos_event ev;
+    struct pos_eventq * evq;
+    struct pos_event_timer * next;
+    pos_time_t expiry;
+    bool armed;
 };
 
 #endif // POSKI_OS_POSIX_TYPES_H

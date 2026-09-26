@@ -54,6 +54,7 @@ TEST(OsEventCpp, EventTimerDispatchAndCancel) {
     poski::OsEventQueue evq;
     poski::OsEventTimer et(evq, gtest_event_cb, &count);
 
+    EXPECT_TRUE(et.Inited());
     EXPECT_EQ(et.StartMs(40), POS_OK);
     EXPECT_TRUE(et.IsActive());
     EXPECT_EQ(evq.Poll(poski::OsTime::MsToTicks(400)), POS_OK);
@@ -64,4 +65,48 @@ TEST(OsEventCpp, EventTimerDispatchAndCancel) {
     EXPECT_FALSE(et.IsActive());
     EXPECT_EQ(evq.Poll(poski::OsTime::MsToTicks(50)), POS_TIMEOUT);
     EXPECT_EQ(count, 1);
+}
+
+namespace {
+
+class Counter {
+public:
+    explicit Counter(poski::OsEventQueue & evq) : mEvent(*this), mTimer(evq, *this) {}
+
+    int mEvents = 0;
+    int mTimers = 0;
+
+private:
+    void HandleEvent() { mEvents++; }
+    void HandleTimer() { mTimers++; }
+
+public:
+    poski::OsEventIn<Counter, &Counter::HandleEvent> mEvent;
+    poski::OsEventTimerIn<Counter, &Counter::HandleTimer> mTimer;
+};
+
+} // namespace
+
+TEST(OsEventCpp, MemberDispatch) {
+    poski::OsEventQueue evq;
+    Counter counter(evq);
+
+    EXPECT_EQ(evq.Put(counter.mEvent), POS_OK);
+    EXPECT_EQ(evq.Put(counter.mEvent), POS_OK);
+    EXPECT_EQ(evq.Poll(POS_TIME_NO_WAIT), POS_OK);
+    EXPECT_EQ(evq.Poll(POS_TIME_NO_WAIT), POS_TIMEOUT);
+    EXPECT_EQ(counter.mEvents, 1);
+
+    EXPECT_EQ(counter.mTimer.StartMs(20), POS_OK);
+    EXPECT_EQ(evq.Poll(poski::OsTime::MsToTicks(400)), POS_OK);
+    EXPECT_EQ(counter.mTimers, 1);
+    EXPECT_EQ(counter.mEvents, 1);
+}
+
+TEST(OsEventCpp, ZeroOverhead) {
+    EXPECT_EQ(sizeof(poski::OsEvent), sizeof(struct pos_event));
+    EXPECT_EQ(sizeof(Counter::mEvent), sizeof(struct pos_event));
+    EXPECT_EQ(sizeof(poski::OsEventQueue), sizeof(struct pos_eventq));
+    EXPECT_EQ(sizeof(poski::OsEventTimer), sizeof(struct pos_event_timer));
+    EXPECT_EQ(sizeof(Counter::mTimer), sizeof(struct pos_event_timer));
 }

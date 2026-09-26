@@ -19,12 +19,199 @@
  * under the License.
  */
 
-#include <errno.h>
+/*
+ * POSIX event queue and event timers.
+ *
+ * All state is owned by the event queue and protected by its mutex.  Event
+ * timers bound to a queue are kept on the queue's `timers` list, sorted by
+ * expiry.  Every queue operation first moves the events of expired timers onto
+ * the FIFO (soonest first, so they stay ordered relative to events posted
+ * afterwards), and a blocking get waits no longer than the earliest pending
+ * expiry.  Timers therefore need no OS resources or helper threads, and
+ * start/stop/restart cannot race with an expiry that is already in flight.
+ */
+
 #include <pthread.h>
 #include <string.h>
 #include <time.h>
 
 #include <poski/osal/osal.h>
+
+#ifdef __APPLE__
+/* pthread_cond_timedwait() always uses CLOCK_REALTIME on macOS. */
+#define EVENTQ_CLOCK CLOCK_REALTIME
+#else
+#define EVENTQ_CLOCK CLOCK_MONOTONIC
+#endif
+
+#define NSEC_PER_SEC 1000000000ULL
+
+/* Return true if tick time `now` is at or after `when` (wrap-safe). */
+static bool time_reached(pos_time_t now, pos_time_t when)
+{
+    return (pos_time_t) (now - when) <= POS_EVENT_TIMER_MAX_TICKS;
+}
+
+/* =========================================================================
+ * Internal helpers.  The caller must hold evq->lock.
+ * ========================================================================= */
+
+static void event_append_locked(struct pos_eventq * evq, struct pos_event * ev)
+{
+    /* Idempotent: an event that is already queued is left where it is. */
+    if (ev->queued)
+    {
+        return;
+    }
+
+    ev->next   = NULL;
+    ev->queued = true;
+    if (evq->tail != NULL)
+    {
+        evq->tail->next = ev;
+    }
+    else
+    {
+        evq->head = ev;
+    }
+    evq->tail = ev;
+}
+
+static struct pos_event * event_pop_locked(struct pos_eventq * evq)
+{
+    struct pos_event * ev = evq->head;
+
+    if (ev != NULL)
+    {
+        evq->head = ev->next;
+        if (evq->head == NULL)
+        {
+            evq->tail = NULL;
+        }
+        ev->next   = NULL;
+        ev->queued = false;
+    }
+    return ev;
+}
+
+static void event_unlink_locked(struct pos_eventq * evq, struct pos_event * ev)
+{
+    struct pos_event * prev = NULL;
+    struct pos_event * cur;
+
+    if (!ev->queued)
+    {
+        return;
+    }
+
+    for (cur = evq->head; cur != NULL; prev = cur, cur = cur->next)
+    {
+        if (cur == ev)
+        {
+            if (prev != NULL)
+            {
+                prev->next = cur->next;
+            }
+            else
+            {
+                evq->head = cur->next;
+            }
+            if (evq->tail == cur)
+            {
+                evq->tail = prev;
+            }
+            cur->next   = NULL;
+            cur->queued = false;
+            return;
+        }
+    }
+}
+
+static void timer_insert_locked(struct pos_eventq * evq, struct pos_event_timer * et)
+{
+    struct pos_event_timer ** link = &evq->timers;
+
+    /* Keep the list sorted by expiry; timers with equal expiry keep start order. */
+    while (*link != NULL && time_reached(et->expiry, (*link)->expiry))
+    {
+        link = &(*link)->next;
+    }
+    et->next  = *link;
+    *link     = et;
+    et->armed = true;
+}
+
+static void timer_unlink_locked(struct pos_eventq * evq, struct pos_event_timer * et)
+{
+    struct pos_event_timer ** link;
+
+    if (!et->armed)
+    {
+        return;
+    }
+
+    for (link = &evq->timers; *link != NULL; link = &(*link)->next)
+    {
+        if (*link == et)
+        {
+            *link = et->next;
+            break;
+        }
+    }
+    et->next  = NULL;
+    et->armed = false;
+}
+
+/* Post the events of all timers that have expired by `now`, soonest first. */
+static void timers_expire_locked(struct pos_eventq * evq, pos_time_t now)
+{
+    while (evq->timers != NULL && time_reached(now, evq->timers->expiry))
+    {
+        struct pos_event_timer * et = evq->timers;
+
+        evq->timers = et->next;
+        et->next    = NULL;
+        et->armed   = false;
+        event_append_locked(evq, &et->ev);
+    }
+}
+
+/* Lock the queue and bring it up to date by posting any expired timers. */
+static void eventq_lock(struct pos_eventq * evq)
+{
+    pthread_mutex_lock(&evq->lock);
+    timers_expire_locked(evq, pos_time_get());
+}
+
+static void eventq_unlock(struct pos_eventq * evq)
+{
+    pthread_mutex_unlock(&evq->lock);
+}
+
+/* Wait on the queue's condition variable forever, or for at most `ticks`. */
+static void eventq_wait_locked(struct pos_eventq * evq, bool forever, pos_time_t ticks)
+{
+    struct timespec ts;
+    uint64_t nsec;
+
+    if (forever)
+    {
+        pthread_cond_wait(&evq->cond, &evq->lock);
+        return;
+    }
+
+    clock_gettime(EVENTQ_CLOCK, &ts);
+    nsec = (uint64_t) ts.tv_nsec + (uint64_t) (ticks % POS_TICKS_PER_SEC) * (NSEC_PER_SEC / POS_TICKS_PER_SEC);
+    ts.tv_sec += (time_t) (ticks / POS_TICKS_PER_SEC) + (time_t) (nsec / NSEC_PER_SEC);
+    ts.tv_nsec = (long) (nsec % NSEC_PER_SEC);
+
+    /* Timeouts and spurious wakeups are handled by the caller's loop. */
+    (void) pthread_cond_timedwait(&evq->cond, &evq->lock, &ts);
+}
+
+/* =========================================================================
+ * Event Queue
+ * ========================================================================= */
 
 pos_error_t pos_eventq_init(struct pos_eventq * evq)
 {
@@ -52,7 +239,7 @@ pos_error_t pos_eventq_init(struct pos_eventq * evq)
     }
 
 #ifndef __APPLE__
-    pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+    pthread_condattr_setclock(&attr, EVENTQ_CLOCK);
 #endif
 
     ret = pthread_cond_init(&evq->cond, &attr);
@@ -69,8 +256,6 @@ pos_error_t pos_eventq_init(struct pos_eventq * evq)
 
 pos_error_t pos_eventq_deinit(struct pos_eventq * evq)
 {
-    struct pos_event * cur;
-
     if (evq == NULL)
     {
         return POS_INVALID_PARAM;
@@ -82,16 +267,13 @@ pos_error_t pos_eventq_deinit(struct pos_eventq * evq)
     }
 
     pthread_mutex_lock(&evq->lock);
-    cur = evq->head;
-    while (cur != NULL)
+    while (event_pop_locked(evq) != NULL)
     {
-        struct pos_event * next = cur->next;
-        cur->next               = NULL;
-        cur->queued             = false;
-        cur                     = next;
     }
-    evq->head   = NULL;
-    evq->tail   = NULL;
+    while (evq->timers != NULL)
+    {
+        timer_unlink_locked(evq, evq->timers);
+    }
     evq->inited = false;
     pthread_cond_broadcast(&evq->cond);
     pthread_mutex_unlock(&evq->lock);
@@ -114,38 +296,18 @@ pos_error_t pos_eventq_put(struct pos_eventq * evq, struct pos_event * ev)
         return POS_INVALID_PARAM;
     }
 
-    pthread_mutex_lock(&evq->lock);
-
-    /* Idempotent enqueue: if already queued, do not corrupt the linked list. */
-    if (ev->queued)
-    {
-        pthread_mutex_unlock(&evq->lock);
-        return POS_OK;
-    }
-
-    ev->next   = NULL;
-    ev->queued = true;
-
-    if (evq->tail != NULL)
-    {
-        evq->tail->next = ev;
-        evq->tail       = ev;
-    }
-    else
-    {
-        evq->head = ev;
-        evq->tail = ev;
-    }
-
+    eventq_lock(evq);
+    event_append_locked(evq, ev);
     pthread_cond_signal(&evq->cond);
-    pthread_mutex_unlock(&evq->lock);
+    eventq_unlock(evq);
 
     return POS_OK;
 }
 
 struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
 {
-    struct pos_event * ev = NULL;
+    struct pos_event * ev;
+    pos_time_t start;
 
     if (evq == NULL || !evq->inited)
     {
@@ -153,58 +315,44 @@ struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
     }
 
     pthread_mutex_lock(&evq->lock);
+    start = pos_time_get();
 
-    if (evq->head == NULL)
+    for (;;)
     {
-        if (timeout == POS_TIME_NO_WAIT)
+        pos_time_t now  = pos_time_get();
+        bool forever    = (timeout == POS_TIME_FOREVER);
+        pos_time_t wait = 0;
+
+        timers_expire_locked(evq, now);
+        ev = event_pop_locked(evq);
+        if (ev != NULL || !evq->inited || timeout == POS_TIME_NO_WAIT)
         {
-            pthread_mutex_unlock(&evq->lock);
-            return NULL;
+            break;
         }
-        else if (timeout == POS_TIME_FOREVER)
+
+        if (!forever)
         {
-            while (evq->head == NULL && evq->inited)
+            pos_time_t elapsed = (pos_time_t) (now - start);
+            if (elapsed >= timeout)
             {
-                pthread_cond_wait(&evq->cond, &evq->lock);
+                break;
+            }
+            wait = timeout - elapsed;
+        }
+
+        /* Wake up in time to post the next timer expiry.  It is in the future,
+         * because expired timers were just posted. */
+        if (evq->timers != NULL)
+        {
+            pos_time_t until = (pos_time_t) (evq->timers->expiry - now);
+            if (forever || until < wait)
+            {
+                forever = false;
+                wait    = until;
             }
         }
-        else
-        {
-            struct timespec ts;
-            uint64_t wait_ms = pos_time_ticks_to_ms(timeout);
-            uint64_t nsec;
 
-#ifdef __APPLE__
-            clock_gettime(CLOCK_REALTIME, &ts);
-#else
-            clock_gettime(CLOCK_MONOTONIC, &ts);
-#endif
-            ts.tv_sec += (time_t) (wait_ms / 1000);
-            nsec = (uint64_t) ts.tv_nsec + (wait_ms % 1000) * 1000000ULL;
-            ts.tv_sec += (time_t) (nsec / 1000000000ULL);
-            ts.tv_nsec = (long) (nsec % 1000000000ULL);
-
-            while (evq->head == NULL && evq->inited)
-            {
-                int rc = pthread_cond_timedwait(&evq->cond, &evq->lock, &ts);
-                if (rc == ETIMEDOUT)
-                {
-                    break;
-                }
-            }
-        }
-    }
-
-    ev = evq->head;
-    if (ev != NULL)
-    {
-        evq->head = ev->next;
-        if (evq->head == NULL)
-        {
-            evq->tail = NULL;
-        }
-        ev->next   = NULL;
-        ev->queued = false;
+        eventq_wait_locked(evq, forever, wait);
     }
 
     pthread_mutex_unlock(&evq->lock);
@@ -213,47 +361,15 @@ struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
 
 pos_error_t pos_eventq_remove(struct pos_eventq * evq, struct pos_event * ev)
 {
-    struct pos_event * prev = NULL;
-    struct pos_event * cur;
-
     if (evq == NULL || !evq->inited || ev == NULL)
     {
         return POS_INVALID_PARAM;
     }
 
-    pthread_mutex_lock(&evq->lock);
+    eventq_lock(evq);
+    event_unlink_locked(evq, ev);
+    eventq_unlock(evq);
 
-    if (ev->queued)
-    {
-        cur = evq->head;
-        while (cur != NULL)
-        {
-            if (cur == ev)
-            {
-                if (prev != NULL)
-                {
-                    prev->next = cur->next;
-                }
-                else
-                {
-                    evq->head = cur->next;
-                }
-
-                if (evq->tail == cur)
-                {
-                    evq->tail = prev;
-                }
-
-                cur->next   = NULL;
-                cur->queued = false;
-                break;
-            }
-            prev = cur;
-            cur  = cur->next;
-        }
-    }
-
-    pthread_mutex_unlock(&evq->lock);
     return POS_OK;
 }
 
@@ -266,41 +382,40 @@ bool pos_eventq_is_empty(struct pos_eventq * evq)
         return true;
     }
 
-    pthread_mutex_lock(&evq->lock);
+    eventq_lock(evq);
     empty = (evq->head == NULL);
-    pthread_mutex_unlock(&evq->lock);
+    eventq_unlock(evq);
 
     return empty;
 }
 
 /* =========================================================================
- * Event Timer Implementation (POSIX)
+ * Event Timer
  * ========================================================================= */
 
-static void pos_event_timer_cb(void * arg)
+static bool event_timer_usable(const struct pos_event_timer * et)
 {
-    struct pos_event_timer * et = (struct pos_event_timer *) arg;
-    if (et != NULL && et->evq != NULL)
-    {
-        pos_eventq_put(et->evq, &et->ev);
-    }
+    return (et != NULL) && (et->evq != NULL) && et->evq->inited;
 }
 
-pos_error_t pos_event_timer_init(struct pos_event_timer * et,
-                                 struct pos_eventq * evq,
-                                 pos_event_fn * fn,
-                                 void * arg)
+pos_error_t pos_event_timer_init(struct pos_event_timer * et, struct pos_eventq * evq, pos_event_fn * fn, void * arg)
 {
-    if (et == NULL || evq == NULL || fn == NULL)
+    if (et == NULL)
     {
         return POS_INVALID_PARAM;
     }
 
+    /* Leave a rejected timer zeroed, i.e. safely "not initialized". */
     memset(et, 0, sizeof(*et));
+    if (evq == NULL || fn == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
+
     et->evq = evq;
     pos_event_init(&et->ev, fn, arg);
 
-    return pos_timer_init(&et->timer, pos_event_timer_cb, et);
+    return POS_OK;
 }
 
 pos_error_t pos_event_timer_deinit(struct pos_event_timer * et)
@@ -310,117 +425,93 @@ pos_error_t pos_event_timer_deinit(struct pos_event_timer * et)
         return POS_INVALID_PARAM;
     }
 
-    pos_event_timer_stop(et);
-
-#ifndef __APPLE__
-    if (et->timer.tm_timer != NULL)
+    if (event_timer_usable(et))
     {
-        timer_delete(et->timer.tm_timer);
-        et->timer.tm_timer = NULL;
+        (void) pos_event_timer_stop(et);
     }
-#endif
+    et->evq = NULL;
 
     return POS_OK;
 }
 
 pos_error_t pos_event_timer_start(struct pos_event_timer * et, pos_time_t ticks)
 {
-    if (et == NULL || et->evq == NULL)
+    struct pos_eventq * evq;
+
+    if (!event_timer_usable(et) || ticks > POS_EVENT_TIMER_MAX_TICKS)
     {
         return POS_INVALID_PARAM;
     }
+    evq = et->evq;
 
-    pos_eventq_remove(et->evq, &et->ev);
-    return pos_timer_start(&et->timer, ticks);
-}
-
-pos_error_t pos_event_timer_start_ms(struct pos_event_timer * et, pos_time_t ms)
-{
-    if (et == NULL || et->evq == NULL)
+    eventq_lock(evq);
+    timer_unlink_locked(evq, et);
+    event_unlink_locked(evq, &et->ev);
+    et->expiry = pos_time_get() + ticks;
+    timer_insert_locked(evq, et);
+    if (evq->timers == et)
     {
-        return POS_INVALID_PARAM;
+        /* New earliest expiry: let blocked consumers shorten their wait. */
+        pthread_cond_broadcast(&evq->cond);
     }
+    eventq_unlock(evq);
 
-    return pos_event_timer_start(et, pos_time_ms_to_ticks(ms));
+    return POS_OK;
 }
 
 pos_error_t pos_event_timer_stop(struct pos_event_timer * et)
 {
-    pos_error_t err;
+    struct pos_eventq * evq;
 
-    if (et == NULL)
+    if (!event_timer_usable(et))
     {
         return POS_INVALID_PARAM;
     }
+    evq = et->evq;
 
-    err = pos_timer_stop(&et->timer);
-    if (et->evq != NULL)
-    {
-        pos_eventq_remove(et->evq, &et->ev);
-    }
+    eventq_lock(evq);
+    timer_unlink_locked(evq, et);
+    event_unlink_locked(evq, &et->ev);
+    eventq_unlock(evq);
 
-    return err;
+    return POS_OK;
 }
 
 pos_error_t pos_event_timer_inited(struct pos_event_timer * et)
 {
-    if (et == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    return pos_timer_inited(&et->timer);
+    return (et != NULL && et->evq != NULL) ? POS_OK : POS_EINVAL;
 }
 
 bool pos_event_timer_is_active(struct pos_event_timer * et)
 {
-    if (et == NULL)
+    bool active;
+
+    if (!event_timer_usable(et))
     {
         return false;
     }
 
-    return pos_timer_is_active(&et->timer);
+    eventq_lock(et->evq);
+    active = et->armed;
+    eventq_unlock(et->evq);
+
+    return active;
 }
 
 pos_time_t pos_event_timer_get_ticks(struct pos_event_timer * et)
 {
-    if (et == NULL)
+    pos_time_t expiry;
+
+    if (!event_timer_usable(et))
     {
         return 0;
     }
 
-    return pos_timer_get_ticks(&et->timer);
-}
+    eventq_lock(et->evq);
+    expiry = et->expiry;
+    eventq_unlock(et->evq);
 
-pos_time_t pos_event_timer_remaining_ticks(struct pos_event_timer * et, pos_time_t now)
-{
-    pos_time_t exp;
-
-    if (et == NULL || !pos_timer_is_active(&et->timer))
-    {
-        return 0;
-    }
-
-    exp = pos_timer_get_ticks(&et->timer);
-    return (exp > now) ? (exp - now) : 0;
-}
-
-void * pos_event_timer_arg_get(struct pos_event_timer * et)
-{
-    if (et == NULL)
-    {
-        return NULL;
-    }
-
-    return pos_event_arg_get(&et->ev);
-}
-
-void pos_event_timer_arg_set(struct pos_event_timer * et, void * arg)
-{
-    if (et != NULL)
-    {
-        pos_event_arg_set(&et->ev, arg);
-    }
+    return expiry;
 }
 
 struct pos_event * pos_event_timer_event_get(struct pos_event_timer * et)

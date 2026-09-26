@@ -21,14 +21,33 @@
 
 /**
  * @file
- *   Formal OSAL specification for Event (`pos_event`), Event Queue (`pos_eventq`),
- *   and Event Timer (`pos_event_timer`, the modern replacement for BSD/Mynewt
- *   callout).
+ *   OSAL Event (`pos_event`), Event Queue (`pos_eventq`), and Event Timer
+ *   (`pos_event_timer`) API, modeled on Apache Mynewt `os_event`, `os_eventq`,
+ *   and `os_callout`.
+ *
+ *   - An event is an intrusive `{callback, argument}` record owned by the
+ *     caller, typically embedded in (or statically allocated next to) the
+ *     object that handles it.  The OSAL never allocates, copies, or frees
+ *     events; queues only link them, so posting cannot fail for lack of memory.
+ *   - An event queue is a FIFO of pending events that one or more consumer
+ *     tasks drain with `pos_eventq_get()` / `pos_eventq_run()`.  Posting an
+ *     event that is already pending is a no-op, so an event is never queued
+ *     twice.
+ *   - An event timer is a one-shot timer bound to an event queue.  When it
+ *     expires, its embedded event is posted to that queue, so the callback runs
+ *     in the consumer task rather than in an ISR or timer-service context.
+ *
+ *   Unless noted otherwise, functions must be called from task context.  On
+ *   RTOS backends, `pos_eventq_put()`, `pos_eventq_remove()`,
+ *   `pos_event_timer_start()`, and `pos_event_timer_stop()` may also be called
+ *   from an ISR, and `pos_eventq_get()` may be called from an ISR with
+ *   `POS_TIME_NO_WAIT`.
  */
 
 #ifndef POSKI_OS_EVENT_H
 #define POSKI_OS_EVENT_H
 
+#include "poski/osal/os_time.h"
 #include "poski/osal/os_types.h"
 
 #ifdef __cplusplus
@@ -40,12 +59,10 @@ extern "C" {
  * ========================================================================= */
 
 /**
- * @brief Initialize an event structure.
- *
- * Prepares an intrusive event item with a callback function and user argument.
+ * @brief Initialize an event with a callback function and user argument.
  *
  * @param ev  Pointer to the event structure to initialize.
- * @param fn  Callback function invoked when the event is executed.
+ * @param fn  Callback function invoked when the event is run.
  * @param arg User-defined context argument associated with the event.
  */
 static inline void pos_event_init(struct pos_event * ev, pos_event_fn * fn, void * arg)
@@ -60,10 +77,13 @@ static inline void pos_event_init(struct pos_event * ev, pos_event_fn * fn, void
 }
 
 /**
- * @brief Check whether an event is currently queued in an event queue.
+ * @brief Check whether an event is currently pending in an event queue.
+ *
+ * The result is a snapshot: another task, an ISR, or an expiring event timer
+ * may change it at any time.
  *
  * @param ev Pointer to the event to query.
- * @return true if the event is currently waiting in an event queue, false otherwise.
+ * @return true if the event is pending in an event queue, false otherwise.
  */
 static inline bool pos_event_is_queued(const struct pos_event * ev)
 {
@@ -71,7 +91,7 @@ static inline bool pos_event_is_queued(const struct pos_event * ev)
 }
 
 /**
- * @brief Get the user-defined argument from an event.
+ * @brief Get the user-defined argument of an event.
  *
  * @param ev Pointer to the event.
  * @return User argument pointer.
@@ -82,15 +102,7 @@ static inline void * pos_event_arg_get(const struct pos_event * ev)
 }
 
 /**
- * @brief Alias of `pos_event_arg_get` for Mynewt/NPL compatibility.
- */
-static inline void * pos_event_get_arg(const struct pos_event * ev)
-{
-    return pos_event_arg_get(ev);
-}
-
-/**
- * @brief Set the user-defined argument for an event.
+ * @brief Set the user-defined argument of an event.
  *
  * @param ev  Pointer to the event.
  * @param arg User argument pointer.
@@ -104,15 +116,7 @@ static inline void pos_event_arg_set(struct pos_event * ev, void * arg)
 }
 
 /**
- * @brief Alias of `pos_event_arg_set` for Mynewt/NPL compatibility.
- */
-static inline void pos_event_set_arg(struct pos_event * ev, void * arg)
-{
-    pos_event_arg_set(ev, arg);
-}
-
-/**
- * @brief Execute the event's callback function directly.
+ * @brief Run the event's callback function directly in the calling context.
  *
  * @param ev Pointer to the event to run.
  */
@@ -142,6 +146,11 @@ pos_error_t pos_eventq_init(struct pos_eventq * evq);
 /**
  * @brief Deinitialize an event queue and release any associated OS resources.
  *
+ * Pending events are dropped (they are no longer marked as queued).  Event
+ * timers bound to the queue must be stopped or deinitialized first, and no
+ * other task may be using the queue.  Deinitializing a queue that is not
+ * initialized is a no-op.
+ *
  * @param evq Address of the event queue structure.
  *
  * @retval POS_OK            Event queue deinitialized.
@@ -150,7 +159,7 @@ pos_error_t pos_eventq_init(struct pos_eventq * evq);
 pos_error_t pos_eventq_deinit(struct pos_eventq * evq);
 
 /**
- * @brief Check whether the given event queue is initialized and valid.
+ * @brief Check whether the given event queue is initialized.
  *
  * @param evq Address of the event queue structure.
  * @return Non-zero (true) if initialized, 0 (false) otherwise.
@@ -160,38 +169,43 @@ int pos_eventq_inited(const struct pos_eventq * evq);
 /**
  * @brief Post an event to the tail of the event queue.
  *
- * Enqueuing is idempotent: if @a ev is already queued (`pos_event_is_queued(ev)`
- * is true), this call is a safe no-op and returns `POS_OK` without duplicating
- * the event on the queue.
+ * Posting is idempotent: if @a ev is already queued, this call is a no-op and
+ * returns `POS_OK` without moving or duplicating the event.
  *
- * @note Safe to call from both task and ISR contexts on RTOS backends.
+ * @note May be called from an ISR on RTOS backends.
  *
  * @param evq Address of the target event queue.
  * @param ev  Address of the event to post.
  *
  * @retval POS_OK            Event posted (or already pending).
- * @retval POS_INVALID_PARAM `evq` or `ev` is NULL.
+ * @retval POS_INVALID_PARAM `evq` or `ev` is NULL, or `evq` is not initialized.
  */
 pos_error_t pos_eventq_put(struct pos_eventq * evq, struct pos_event * ev);
 
 /**
- * @brief Retrieve the next event from the head of the event queue.
+ * @brief Remove and return the event at the head of the event queue, waiting
+ *        up to @a timeout ticks for one to arrive.
  *
- * Clears the event's `queued` state before returning so the event callback can
- * safely re-post itself if desired.
+ * The event is marked as no longer queued before it is returned, so its
+ * callback may safely re-post it.
+ *
+ * @note May be called from an ISR on RTOS backends, but @a timeout must be
+ *       `POS_TIME_NO_WAIT`.
  *
  * @param evq     Address of the event queue.
  * @param timeout Maximum ticks to wait (`POS_TIME_NO_WAIT`, `POS_TIME_FOREVER`,
  *                or a tick count).
- * @return Pointer to the dequeued `pos_event`, or `NULL` on timeout/empty.
+ * @return Pointer to the dequeued event, or `NULL` on timeout (or if `evq` is
+ *         NULL or not initialized).
  */
 struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout);
 
 /**
- * @brief Non-blocking poll for the next event from the event queue.
+ * @brief Remove and return the event at the head of the event queue without
+ *        waiting.
  *
  * @param evq Address of the event queue.
- * @return Pointer to the dequeued `pos_event`, or `NULL` if empty.
+ * @return Pointer to the dequeued event, or `NULL` if the queue is empty.
  */
 static inline struct pos_event * pos_eventq_get_no_wait(struct pos_eventq * evq)
 {
@@ -199,34 +213,37 @@ static inline struct pos_event * pos_eventq_get_no_wait(struct pos_eventq * evq)
 }
 
 /**
- * @brief Remove a specific event from the event queue if it is currently queued.
+ * @brief Remove a specific event from the event queue if it is pending there.
  *
- * If @a ev is not currently queued in @a evq, this function is a safe no-op.
+ * If @a ev is not pending in @a evq, this call is a no-op.
+ *
+ * @note May be called from an ISR on RTOS backends.
  *
  * @param evq Address of the event queue.
  * @param ev  Address of the event to remove.
  *
  * @retval POS_OK            Event removed (or was not queued).
- * @retval POS_INVALID_PARAM `evq` or `ev` is NULL.
+ * @retval POS_INVALID_PARAM `evq` or `ev` is NULL, or `evq` is not initialized.
  */
 pos_error_t pos_eventq_remove(struct pos_eventq * evq, struct pos_event * ev);
 
 /**
- * @brief Return whether the event queue currently contains no pending events.
+ * @brief Return whether the event queue currently has no pending events.
  *
  * @param evq Address of the event queue.
- * @return true if empty, false if one or more events are pending.
+ * @return true if empty (or if `evq` is NULL or not initialized), false if one
+ *         or more events are pending.
  */
 bool pos_eventq_is_empty(struct pos_eventq * evq);
 
 /**
- * @brief Dequeue a single event (blocking up to `timeout`) and execute its callback.
+ * @brief Dequeue one event (waiting up to @a timeout ticks) and run its callback.
  *
  * @param evq     Address of the event queue.
  * @param timeout Maximum ticks to wait for an event.
  *
- * @retval POS_OK      An event was dequeued and executed.
- * @retval POS_TIMEOUT No event arrived within `timeout`.
+ * @retval POS_OK      An event was dequeued and run.
+ * @retval POS_TIMEOUT No event arrived within @a timeout.
  */
 static inline pos_error_t pos_eventq_poll(struct pos_eventq * evq, pos_time_t timeout)
 {
@@ -240,9 +257,10 @@ static inline pos_error_t pos_eventq_poll(struct pos_eventq * evq, pos_time_t ti
 }
 
 /**
- * @brief Wait indefinitely for the next event on the queue and execute its callback.
+ * @brief Wait indefinitely for the next event on the queue and run its callback.
  *
- * Equivalent to Mynewt `os_eventq_run(evq)`.
+ * Equivalent to Mynewt `os_eventq_run(evq)`; typically called in a loop by the
+ * task that owns the queue.
  *
  * @param evq Address of the event queue.
  */
@@ -252,128 +270,152 @@ static inline void pos_eventq_run(struct pos_eventq * evq)
 }
 
 /* =========================================================================
- * Event Timer API (pos_event_timer - replaces Mynewt/NPL callout)
+ * Event Timer API (pos_event_timer, replaces the Mynewt/NPL callout)
  * ========================================================================= */
 
 /**
- * @brief Initialize an event timer.
+ * @brief Initialize an event timer bound to an event queue.
  *
- * Associates an OS software timer with a target event queue (`evq`) and an
- * embedded event (`fn`, `arg`). When the timer expires, its internal event is
- * automatically posted to `evq` so the callback executes in the consumer task's
- * thread context rather than inside an ISR or timer daemon context.
+ * When the timer expires, its embedded event (`fn`, `arg`) is posted to @a evq,
+ * so @a fn runs in the task that services @a evq.  The timer is initially
+ * stopped.
  *
  * @param et  Address of the event timer to initialize.
- * @param evq Target event queue where expiration events are posted.
- * @param fn  Event callback function invoked when the event is processed.
- * @param arg User argument passed to the event.
+ * @param evq Event queue to post the expiry event to.
+ * @param fn  Event callback function.
+ * @param arg User argument of the event.
  *
  * @retval POS_OK            Event timer initialized.
- * @retval POS_INVALID_PARAM Any required pointer is NULL.
- * @retval POS_ENOMEM        Timer creation failed.
+ * @retval POS_INVALID_PARAM `et`, `evq`, or `fn` is NULL.
  */
-pos_error_t pos_event_timer_init(struct pos_event_timer * et,
-                                 struct pos_eventq * evq,
-                                 pos_event_fn * fn,
-                                 void * arg);
+pos_error_t pos_event_timer_init(struct pos_event_timer * et, struct pos_eventq * evq, pos_event_fn * fn, void * arg);
 
 /**
- * @brief Deinitialize an event timer and release underlying OS timer resources.
+ * @brief Stop an event timer and release any backend resources.
+ *
+ * The structure may be reused or freed once this returns.  Deinitializing a
+ * timer that is not initialized (e.g. zero-filled) is a no-op.
  *
  * @param et Address of the event timer.
  *
- * @retval POS_OK Event timer deinitialized.
+ * @retval POS_OK            Event timer deinitialized.
+ * @retval POS_INVALID_PARAM `et` is NULL.
  */
 pos_error_t pos_event_timer_deinit(struct pos_event_timer * et);
 
 /**
- * @brief Start or reset the event timer to expire after `ticks` OS ticks.
+ * Longest delay, in ticks, accepted by `pos_event_timer_start()`: half the
+ * range of `pos_time_t` (e.g. `INT32_MAX` for 32-bit ticks), so that expiry
+ * times still compare correctly across tick-counter wraparound.
+ */
+#define POS_EVENT_TIMER_MAX_TICKS ((pos_time_t) (~(pos_time_t) 0) / 2)
+
+/**
+ * @brief Start, or restart, the event timer to expire @a ticks ticks from now.
  *
- * If the event timer is already active or its event is currently pending in the
- * queue, it is cancelled and rescheduled for `ticks` in the future.
+ * If the timer is already running it is rescheduled.  If the event from a
+ * previous expiry is still pending in the queue it is removed first, so each
+ * start delivers the event at most once.  A @a ticks of 0 expires as soon as
+ * possible.
+ *
+ * @note May be called from an ISR on RTOS backends.
  *
  * @param et    Address of the event timer.
- * @param ticks Delay in OS ticks before posting the event to the event queue.
+ * @param ticks Delay in OS ticks before the event is posted, at most
+ *              `POS_EVENT_TIMER_MAX_TICKS`.
  *
- * @retval POS_OK            Timer armed.
- * @retval POS_INVALID_PARAM Invalid parameter.
+ * @retval POS_OK            Timer started.
+ * @retval POS_INVALID_PARAM `et` is NULL or not initialized, or @a ticks is
+ *                           greater than `POS_EVENT_TIMER_MAX_TICKS`.
  */
 pos_error_t pos_event_timer_start(struct pos_event_timer * et, pos_time_t ticks);
 
 /**
- * @brief Start or reset the event timer to expire after `ms` milliseconds.
- *
- * @param et Address of the event timer.
- * @param ms Delay in milliseconds before posting the event.
- *
- * @retval POS_OK Timer armed.
+ * @brief Start, or restart, the event timer to expire @a ms milliseconds from
+ *        now.  See `pos_event_timer_start()`.
  */
-pos_error_t pos_event_timer_start_ms(struct pos_event_timer * et, pos_time_t ms);
-
-/**
- * @brief Aliases of `pos_event_timer_start` / `start_ms` (`arm`, `arm_ms`, `reset`).
- */
-static inline pos_error_t pos_event_timer_arm(struct pos_event_timer * et, pos_time_t ticks)
+static inline pos_error_t pos_event_timer_start_ms(struct pos_event_timer * et, pos_time_t ms)
 {
-    return pos_event_timer_start(et, ticks);
-}
-
-static inline pos_error_t pos_event_timer_arm_ms(struct pos_event_timer * et, pos_time_t ms)
-{
-    return pos_event_timer_start_ms(et, ms);
-}
-
-static inline pos_error_t pos_event_timer_reset(struct pos_event_timer * et, pos_time_t ticks)
-{
-    return pos_event_timer_start(et, ticks);
+    return pos_event_timer_start(et, pos_time_ms_to_ticks(ms));
 }
 
 /**
- * @brief Stop a running event timer and remove its event from the queue if pending.
+ * @brief Stop the event timer and remove its event from the queue if pending.
  *
- * Guarantees that if `pos_event_timer_stop()` is called before the consumer
- * thread dequeues the event, the event is removed from the target `pos_eventq`.
+ * Once this returns, the event will not be delivered for any earlier start
+ * (its callback may still be running if the consumer had already dequeued it).
+ * Stopping a timer that is not running is a no-op.
+ *
+ * @note May be called from an ISR on RTOS backends.
  *
  * @param et Address of the event timer.
  *
- * @retval POS_OK Timer stopped and any queued expiration event removed.
+ * @retval POS_OK            Timer stopped.
+ * @retval POS_INVALID_PARAM `et` is NULL or not initialized.
  */
 pos_error_t pos_event_timer_stop(struct pos_event_timer * et);
 
 /**
  * @brief Check whether the event timer is initialized.
+ *
+ * @param et Address of the event timer.
+ *
+ * @retval POS_OK     Event timer is initialized.
+ * @retval POS_EINVAL `et` is NULL or not initialized.
  */
 pos_error_t pos_event_timer_inited(struct pos_event_timer * et);
 
 /**
- * @brief Return whether the event timer is currently active (counting down).
+ * @brief Return whether the event timer is running, i.e. started and its
+ *        expiry event not yet posted.
  */
 bool pos_event_timer_is_active(struct pos_event_timer * et);
 
 /**
- * @brief Return the absolute tick timestamp at which the event timer is scheduled to expire.
+ * @brief Return the absolute expiry time, in `pos_time_get()` ticks, set by the
+ *        most recent start.  Only meaningful while the timer is active.
  */
 pos_time_t pos_event_timer_get_ticks(struct pos_event_timer * et);
 
 /**
- * @brief Return the remaining ticks until the event timer expires relative to `now`.
+ * @brief Return the ticks remaining from @a now until the event timer expires,
+ *        or 0 if the timer is not active or already due.
  */
-pos_time_t pos_event_timer_remaining_ticks(struct pos_event_timer * et, pos_time_t now);
+static inline pos_time_t pos_event_timer_remaining_ticks(struct pos_event_timer * et, pos_time_t now)
+{
+    pos_time_t remaining;
+
+    if (!pos_event_timer_is_active(et))
+    {
+        return 0;
+    }
+
+    /* Wrap-safe: an expiry at or before `now` yields a difference in the upper
+     * half of the (unsigned) tick range. */
+    remaining = (pos_time_t) (pos_event_timer_get_ticks(et) - now);
+    return (remaining <= POS_EVENT_TIMER_MAX_TICKS) ? remaining : 0;
+}
 
 /**
- * @brief Get the user argument associated with the event timer's event.
- */
-void * pos_event_timer_arg_get(struct pos_event_timer * et);
-
-/**
- * @brief Set the user argument associated with the event timer's event.
- */
-void pos_event_timer_arg_set(struct pos_event_timer * et, void * arg);
-
-/**
- * @brief Return a pointer to the event timer's embedded `pos_event`.
+ * @brief Return a pointer to the event timer's embedded event.
  */
 struct pos_event * pos_event_timer_event_get(struct pos_event_timer * et);
+
+/**
+ * @brief Get the user argument of the event timer's event.
+ */
+static inline void * pos_event_timer_arg_get(struct pos_event_timer * et)
+{
+    return pos_event_arg_get(pos_event_timer_event_get(et));
+}
+
+/**
+ * @brief Set the user argument of the event timer's event.
+ */
+static inline void pos_event_timer_arg_set(struct pos_event_timer * et, void * arg)
+{
+    pos_event_arg_set(pos_event_timer_event_get(et), arg);
+}
 
 #ifdef __cplusplus
 }
