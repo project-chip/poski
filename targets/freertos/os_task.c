@@ -29,6 +29,12 @@ void pos_task_dispatch(void * arg)
     assert(task);
     assert(task->func);
     task->func(task->arg);
+
+    /* A FreeRTOS task must never return from its entry function (on Cortex-M
+     * that traps in prvTaskExitError()), so end the task instead, as a pthread
+     * does when its function returns. */
+    (void) pos_task_remove(task);
+    vTaskDelete(NULL); /* Only reached if the handle was already cleared. */
 }
 
 pos_error_t pos_task_init(struct pos_task * task, const char * name, pos_task_func_t func, void * arg, uint8_t prio,

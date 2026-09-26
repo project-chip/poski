@@ -19,14 +19,43 @@
  * under the License.
  */
 
+/*
+ * FreeRTOS event queue and event timers.
+ *
+ * The event queue is an intrusive FIFO guarded by a critical section, so
+ * events can be posted and removed from tasks and ISRs.  A binary semaphore
+ * only wakes blocked consumers, and is signaled only while one is blocked: the
+ * list is the source of truth, so a consumer re-checks the list after every
+ * wakeup and the semaphore count never has to match the number of queued
+ * events.
+ *
+ * Event timers are serviced by their queue, like Mynewt callouts: pending
+ * timers are kept on the queue's `timers` list, sorted by expiry.  Every queue
+ * operation first moves the events of expired timers onto the FIFO (soonest
+ * first, so they stay ordered relative to events posted afterwards), and a
+ * blocking get sleeps no longer than the earliest pending expiry.  Event timers
+ * therefore use no FreeRTOS software timers (no timer service task, timer
+ * command queue, or heap), and start/stop/restart cannot race with an expiry
+ * that is already in flight.  The POSIX target uses the same algorithm, where
+ * it is exercised by the host unit tests.
+ *
+ * With configSUPPORT_STATIC_ALLOCATION == 1 the wakeup semaphore is allocated
+ * inside struct pos_eventq, so no heap is used at all.
+ */
+
 #include <string.h>
 
 #include <poski/osal/osal.h>
 #include "os_hw.h"
 
-#define POS_EVENTQ_MAX_TOKENS 0xFFFFU
+/* Return true if tick time `now` is at or after `when` (wrap-safe). */
+static bool time_reached(TickType_t now, TickType_t when)
+{
+    return (TickType_t) (now - when) <= POS_EVENT_TIMER_MAX_TICKS;
+}
 
-static inline UBaseType_t pos_freertos_crit_enter(void)
+/* Critical section usable from both task and ISR context. */
+static UBaseType_t eventq_crit_enter(void)
 {
     if (pos_hw_in_isr())
     {
@@ -36,7 +65,7 @@ static inline UBaseType_t pos_freertos_crit_enter(void)
     return 0;
 }
 
-static inline void pos_freertos_crit_exit(UBaseType_t state)
+static void eventq_crit_exit(UBaseType_t state)
 {
     if (pos_hw_in_isr())
     {
@@ -48,136 +77,35 @@ static inline void pos_freertos_crit_exit(UBaseType_t state)
     }
 }
 
-pos_error_t pos_eventq_init(struct pos_eventq * evq)
+/* =========================================================================
+ * Internal helpers.  The caller must be inside the critical section.
+ * ========================================================================= */
+
+static void event_append_locked(struct pos_eventq * evq, struct pos_event * ev)
 {
-    if (evq == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    memset(evq, 0, sizeof(*evq));
-    evq->sem = xSemaphoreCreateCounting(POS_EVENTQ_MAX_TOKENS, 0);
-    if (evq->sem == NULL)
-    {
-        return POS_ENOMEM;
-    }
-
-    return POS_OK;
-}
-
-pos_error_t pos_eventq_deinit(struct pos_eventq * evq)
-{
-    struct pos_event * cur;
-    UBaseType_t crit;
-
-    if (evq == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    crit = pos_freertos_crit_enter();
-    cur  = evq->head;
-    while (cur != NULL)
-    {
-        struct pos_event * next = cur->next;
-        cur->next               = NULL;
-        cur->queued             = false;
-        cur                     = next;
-    }
-    evq->head = NULL;
-    evq->tail = NULL;
-    pos_freertos_crit_exit(crit);
-
-    if (evq->sem != NULL)
-    {
-        vSemaphoreDelete(evq->sem);
-        evq->sem = NULL;
-    }
-
-    return POS_OK;
-}
-
-int pos_eventq_inited(const struct pos_eventq * evq)
-{
-    return (evq != NULL && evq->sem != NULL) ? 1 : 0;
-}
-
-pos_error_t pos_eventq_put(struct pos_eventq * evq, struct pos_event * ev)
-{
-    UBaseType_t crit;
-
-    if (evq == NULL || evq->sem == NULL || ev == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    crit = pos_freertos_crit_enter();
-
+    /* Idempotent: an event that is already queued is left where it is. */
     if (ev->queued)
     {
-        pos_freertos_crit_exit(crit);
-        return POS_OK;
+        return;
     }
 
     ev->next   = NULL;
     ev->queued = true;
-
     if (evq->tail != NULL)
     {
         evq->tail->next = ev;
-        evq->tail       = ev;
     }
     else
     {
         evq->head = ev;
-        evq->tail = ev;
     }
-
-    pos_freertos_crit_exit(crit);
-
-    if (pos_hw_in_isr())
-    {
-        BaseType_t woken = pdFALSE;
-        xSemaphoreGiveFromISR(evq->sem, &woken);
-        portYIELD_FROM_ISR(woken);
-    }
-    else
-    {
-        xSemaphoreGive(evq->sem);
-    }
-
-    return POS_OK;
+    evq->tail = ev;
 }
 
-struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
+static struct pos_event * event_pop_locked(struct pos_eventq * evq)
 {
-    struct pos_event * ev = NULL;
-    BaseType_t sem_ret;
-    UBaseType_t crit;
+    struct pos_event * ev = evq->head;
 
-    if (evq == NULL || evq->sem == NULL)
-    {
-        return NULL;
-    }
-
-    if (pos_hw_in_isr())
-    {
-        BaseType_t woken = pdFALSE;
-        sem_ret          = xSemaphoreTakeFromISR(evq->sem, &woken);
-        portYIELD_FROM_ISR(woken);
-    }
-    else
-    {
-        sem_ret = xSemaphoreTake(evq->sem, timeout);
-    }
-
-    if (sem_ret != pdTRUE)
-    {
-        return NULL;
-    }
-
-    crit = pos_freertos_crit_enter();
-    ev   = evq->head;
     if (ev != NULL)
     {
         evq->head = ev->next;
@@ -188,119 +116,342 @@ struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
         ev->next   = NULL;
         ev->queued = false;
     }
-    pos_freertos_crit_exit(crit);
+    return ev;
+}
+
+static void event_unlink_locked(struct pos_eventq * evq, struct pos_event * ev)
+{
+    struct pos_event * prev = NULL;
+    struct pos_event * cur;
+
+    if (!ev->queued)
+    {
+        return;
+    }
+
+    for (cur = evq->head; cur != NULL; prev = cur, cur = cur->next)
+    {
+        if (cur == ev)
+        {
+            if (prev != NULL)
+            {
+                prev->next = cur->next;
+            }
+            else
+            {
+                evq->head = cur->next;
+            }
+            if (evq->tail == cur)
+            {
+                evq->tail = prev;
+            }
+            cur->next   = NULL;
+            cur->queued = false;
+            return;
+        }
+    }
+}
+
+static void timer_insert_locked(struct pos_eventq * evq, struct pos_event_timer * et)
+{
+    struct pos_event_timer ** link = &evq->timers;
+
+    /* Keep the list sorted by expiry; timers with equal expiry keep start order. */
+    while (*link != NULL && time_reached(et->expiry, (*link)->expiry))
+    {
+        link = &(*link)->next;
+    }
+    et->next  = *link;
+    *link     = et;
+    et->armed = true;
+}
+
+static void timer_unlink_locked(struct pos_eventq * evq, struct pos_event_timer * et)
+{
+    struct pos_event_timer ** link;
+
+    if (!et->armed)
+    {
+        return;
+    }
+
+    for (link = &evq->timers; *link != NULL; link = &(*link)->next)
+    {
+        if (*link == et)
+        {
+            *link = et->next;
+            break;
+        }
+    }
+    et->next  = NULL;
+    et->armed = false;
+}
+
+/* Post the events of all timers that have expired by `now`, soonest first. */
+static void timers_expire_locked(struct pos_eventq * evq, TickType_t now)
+{
+    while (evq->timers != NULL && time_reached(now, evq->timers->expiry))
+    {
+        struct pos_event_timer * et = evq->timers;
+
+        evq->timers = et->next;
+        et->next    = NULL;
+        et->armed   = false;
+        event_append_locked(evq, &et->ev);
+    }
+}
+
+/* Enter the critical section and bring the queue up to date by posting any
+ * expired timers. */
+static UBaseType_t eventq_lock(struct pos_eventq * evq)
+{
+    UBaseType_t state = eventq_crit_enter();
+    timers_expire_locked(evq, pos_time_get());
+    return state;
+}
+
+static void eventq_unlock(UBaseType_t state)
+{
+    eventq_crit_exit(state);
+}
+
+/* Wake one consumer blocked in pos_eventq_get() so that it re-checks the queue.
+ * Callers check `waiters` inside the critical section and call this after
+ * leaving it, since FreeRTOS APIs must not be called from a critical section. */
+static void eventq_wake(struct pos_eventq * evq)
+{
+    if (pos_hw_in_isr())
+    {
+        BaseType_t woken = pdFALSE;
+        (void) xSemaphoreGiveFromISR(evq->wakeup, &woken);
+        portYIELD_FROM_ISR(woken);
+    }
+    else
+    {
+        /* Fails harmlessly if a wakeup is already pending. */
+        (void) xSemaphoreGive(evq->wakeup);
+    }
+}
+
+/* =========================================================================
+ * Event Queue
+ * ========================================================================= */
+
+pos_error_t pos_eventq_init(struct pos_eventq * evq)
+{
+    if (evq == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
+
+    memset(evq, 0, sizeof(*evq));
+#if POS_FREERTOS_STATIC_ALLOCATION
+    evq->wakeup = xSemaphoreCreateBinaryStatic(&evq->wakeup_buf);
+#else
+    evq->wakeup = xSemaphoreCreateBinary();
+#endif
+
+    return (evq->wakeup != NULL) ? POS_OK : POS_ENOMEM;
+}
+
+pos_error_t pos_eventq_deinit(struct pos_eventq * evq)
+{
+    UBaseType_t state;
+
+    if (evq == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
+
+    if (evq->wakeup == NULL)
+    {
+        return POS_OK;
+    }
+
+    state = eventq_crit_enter();
+    while (event_pop_locked(evq) != NULL)
+    {
+    }
+    while (evq->timers != NULL)
+    {
+        timer_unlink_locked(evq, evq->timers);
+    }
+    eventq_crit_exit(state);
+
+    vSemaphoreDelete(evq->wakeup);
+    evq->wakeup = NULL;
+
+    return POS_OK;
+}
+
+int pos_eventq_inited(const struct pos_eventq * evq)
+{
+    return (evq != NULL && evq->wakeup != NULL) ? 1 : 0;
+}
+
+pos_error_t pos_eventq_put(struct pos_eventq * evq, struct pos_event * ev)
+{
+    UBaseType_t state;
+    bool wake;
+
+    if (evq == NULL || evq->wakeup == NULL || ev == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
+
+    state = eventq_lock(evq);
+    event_append_locked(evq, ev);
+    wake = (evq->waiters != 0);
+    eventq_unlock(state);
+
+    if (wake)
+    {
+        eventq_wake(evq);
+    }
+
+    return POS_OK;
+}
+
+struct pos_event * pos_eventq_get(struct pos_eventq * evq, pos_time_t timeout)
+{
+    struct pos_event * ev;
+    TimeOut_t timeout_state;
+    TickType_t remaining = timeout;
+    bool waiting         = false;
+    bool handoff;
+
+    if (evq == NULL || evq->wakeup == NULL)
+    {
+        return NULL;
+    }
+
+    if (pos_hw_in_isr())
+    {
+        /* ISRs cannot block: poll once. */
+        UBaseType_t state = eventq_lock(evq);
+        ev                = event_pop_locked(evq);
+        eventq_unlock(state);
+        return ev;
+    }
+
+    vTaskSetTimeOutState(&timeout_state);
+    for (;;)
+    {
+        TickType_t wait = remaining;
+        UBaseType_t state;
+        TickType_t now;
+
+        state = eventq_crit_enter();
+        if (waiting)
+        {
+            evq->waiters--;
+        }
+        now = xTaskGetTickCount();
+        timers_expire_locked(evq, now);
+        ev = event_pop_locked(evq);
+
+        /* The binary semaphore coalesces wakeups, so if events are left behind
+         * pass a wakeup on to any other blocked consumer. */
+        handoff = (ev != NULL) && (evq->head != NULL) && (evq->waiters != 0);
+
+        waiting = (ev == NULL) && (remaining != 0);
+        if (waiting)
+        {
+            /* Register as a waiter before leaving the critical section, so a
+             * put() that follows is guaranteed to signal the semaphore. */
+            evq->waiters++;
+
+            /* Wake up in time to post the next timer expiry.  It is in the
+             * future, because expired timers were just posted. */
+            if (evq->timers != NULL && (TickType_t) (evq->timers->expiry - now) < wait)
+            {
+                wait = evq->timers->expiry - now;
+            }
+        }
+        eventq_crit_exit(state);
+
+        if (!waiting)
+        {
+            break;
+        }
+
+        (void) xSemaphoreTake(evq->wakeup, wait);
+
+        if (xTaskCheckForTimeOut(&timeout_state, &remaining) != pdFALSE)
+        {
+            /* Timed out: make one last non-blocking attempt. */
+            remaining = 0;
+        }
+    }
+
+    if (handoff)
+    {
+        eventq_wake(evq);
+    }
 
     return ev;
 }
 
 pos_error_t pos_eventq_remove(struct pos_eventq * evq, struct pos_event * ev)
 {
-    struct pos_event * prev = NULL;
-    struct pos_event * cur;
-    bool removed = false;
-    UBaseType_t crit;
+    UBaseType_t state;
 
-    if (evq == NULL || evq->sem == NULL || ev == NULL)
+    if (evq == NULL || evq->wakeup == NULL || ev == NULL)
     {
         return POS_INVALID_PARAM;
     }
 
-    crit = pos_freertos_crit_enter();
-
-    if (ev->queued)
-    {
-        cur = evq->head;
-        while (cur != NULL)
-        {
-            if (cur == ev)
-            {
-                if (prev != NULL)
-                {
-                    prev->next = cur->next;
-                }
-                else
-                {
-                    evq->head = cur->next;
-                }
-
-                if (evq->tail == cur)
-                {
-                    evq->tail = prev;
-                }
-
-                cur->next   = NULL;
-                cur->queued = false;
-                removed     = true;
-                break;
-            }
-            prev = cur;
-            cur  = cur->next;
-        }
-    }
-
-    pos_freertos_crit_exit(crit);
-
-    if (removed)
-    {
-        if (pos_hw_in_isr())
-        {
-            BaseType_t woken = pdFALSE;
-            xSemaphoreTakeFromISR(evq->sem, &woken);
-        }
-        else
-        {
-            xSemaphoreTake(evq->sem, 0);
-        }
-    }
+    state = eventq_lock(evq);
+    event_unlink_locked(evq, ev);
+    eventq_unlock(state);
 
     return POS_OK;
 }
 
 bool pos_eventq_is_empty(struct pos_eventq * evq)
 {
+    UBaseType_t state;
     bool empty;
-    UBaseType_t crit;
 
-    if (evq == NULL || evq->sem == NULL)
+    if (evq == NULL || evq->wakeup == NULL)
     {
         return true;
     }
 
-    crit  = pos_freertos_crit_enter();
+    state = eventq_lock(evq);
     empty = (evq->head == NULL);
-    pos_freertos_crit_exit(crit);
+    eventq_unlock(state);
 
     return empty;
 }
 
 /* =========================================================================
- * Event Timer Implementation (FreeRTOS)
+ * Event Timer
  * ========================================================================= */
 
-static void pos_event_timer_cb(void * arg)
+static bool event_timer_usable(const struct pos_event_timer * et)
 {
-    struct pos_event_timer * et = (struct pos_event_timer *) arg;
-    if (et != NULL && et->evq != NULL)
-    {
-        pos_eventq_put(et->evq, &et->ev);
-    }
+    return (et != NULL) && (et->evq != NULL) && (et->evq->wakeup != NULL);
 }
 
-pos_error_t pos_event_timer_init(struct pos_event_timer * et,
-                                 struct pos_eventq * evq,
-                                 pos_event_fn * fn,
-                                 void * arg)
+pos_error_t pos_event_timer_init(struct pos_event_timer * et, struct pos_eventq * evq, pos_event_fn * fn, void * arg)
 {
-    if (et == NULL || evq == NULL || fn == NULL)
+    if (et == NULL)
     {
         return POS_INVALID_PARAM;
     }
 
+    /* Leave a rejected timer zeroed, i.e. safely "not initialized". */
     memset(et, 0, sizeof(*et));
+    if (evq == NULL || fn == NULL)
+    {
+        return POS_INVALID_PARAM;
+    }
+
     et->evq = evq;
     pos_event_init(&et->ev, fn, arg);
 
-    return pos_timer_init(&et->timer, pos_event_timer_cb, et);
+    return POS_OK;
 }
 
 pos_error_t pos_event_timer_deinit(struct pos_event_timer * et)
@@ -310,112 +461,100 @@ pos_error_t pos_event_timer_deinit(struct pos_event_timer * et)
         return POS_INVALID_PARAM;
     }
 
-    pos_event_timer_stop(et);
-
-    if (et->timer.handle != NULL)
+    if (event_timer_usable(et))
     {
-        xTimerDelete(et->timer.handle, portMAX_DELAY);
-        et->timer.handle = NULL;
+        (void) pos_event_timer_stop(et);
     }
+    et->evq = NULL;
 
     return POS_OK;
 }
 
 pos_error_t pos_event_timer_start(struct pos_event_timer * et, pos_time_t ticks)
 {
-    if (et == NULL || et->evq == NULL)
+    struct pos_eventq * evq;
+    UBaseType_t state;
+    bool wake;
+
+    if (!event_timer_usable(et) || ticks > POS_EVENT_TIMER_MAX_TICKS)
     {
         return POS_INVALID_PARAM;
     }
+    evq = et->evq;
 
-    pos_eventq_remove(et->evq, &et->ev);
-    return pos_timer_start(&et->timer, ticks);
-}
+    state = eventq_lock(evq);
+    timer_unlink_locked(evq, et);
+    event_unlink_locked(evq, &et->ev);
+    et->expiry = pos_time_get() + ticks;
+    timer_insert_locked(evq, et);
+    /* A new earliest expiry must shorten the wait of a blocked consumer. */
+    wake = (evq->timers == et) && (evq->waiters != 0);
+    eventq_unlock(state);
 
-pos_error_t pos_event_timer_start_ms(struct pos_event_timer * et, pos_time_t ms)
-{
-    if (et == NULL || et->evq == NULL)
+    if (wake)
     {
-        return POS_INVALID_PARAM;
-    }
-
-    return pos_event_timer_start(et, pos_time_ms_to_ticks(ms));
-}
-
-pos_error_t pos_event_timer_stop(struct pos_event_timer * et)
-{
-    pos_error_t err;
-
-    if (et == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    err = pos_timer_stop(&et->timer);
-    if (et->evq != NULL)
-    {
-        pos_eventq_remove(et->evq, &et->ev);
-    }
-
-    return err;
-}
-
-pos_error_t pos_event_timer_inited(struct pos_event_timer * et)
-{
-    if (et == NULL || et->timer.handle == NULL)
-    {
-        return POS_ENOENT;
+        eventq_wake(evq);
     }
 
     return POS_OK;
 }
 
+pos_error_t pos_event_timer_stop(struct pos_event_timer * et)
+{
+    struct pos_eventq * evq;
+    UBaseType_t state;
+
+    if (!event_timer_usable(et))
+    {
+        return POS_INVALID_PARAM;
+    }
+    evq = et->evq;
+
+    state = eventq_lock(evq);
+    timer_unlink_locked(evq, et);
+    event_unlink_locked(evq, &et->ev);
+    eventq_unlock(state);
+
+    return POS_OK;
+}
+
+pos_error_t pos_event_timer_inited(struct pos_event_timer * et)
+{
+    return (et != NULL && et->evq != NULL) ? POS_OK : POS_EINVAL;
+}
+
 bool pos_event_timer_is_active(struct pos_event_timer * et)
 {
-    if (et == NULL || et->timer.handle == NULL)
+    UBaseType_t state;
+    bool active;
+
+    if (!event_timer_usable(et))
     {
         return false;
     }
 
-    return pos_timer_is_active(&et->timer);
+    state  = eventq_lock(et->evq);
+    active = et->armed;
+    eventq_unlock(state);
+
+    return active;
 }
 
 pos_time_t pos_event_timer_get_ticks(struct pos_event_timer * et)
 {
-    if (et == NULL || et->timer.handle == NULL)
+    UBaseType_t state;
+    pos_time_t expiry;
+
+    if (!event_timer_usable(et))
     {
         return 0;
     }
 
-    return pos_timer_get_ticks(&et->timer);
-}
+    state  = eventq_lock(et->evq);
+    expiry = et->expiry;
+    eventq_unlock(state);
 
-pos_time_t pos_event_timer_remaining_ticks(struct pos_event_timer * et, pos_time_t now)
-{
-    if (et == NULL || et->timer.handle == NULL)
-    {
-        return 0;
-    }
-
-    return pos_timer_remaining_ticks(&et->timer, now);
-}
-
-void * pos_event_timer_arg_get(struct pos_event_timer * et)
-{
-    if (et == NULL)
-    {
-        return NULL;
-    }
-
-    return pos_event_arg_get(&et->ev);
-}
-
-void pos_event_timer_arg_set(struct pos_event_timer * et, void * arg)
-{
-    if (et != NULL)
-    {
-        pos_event_arg_set(&et->ev, arg);
-    }
+    return expiry;
 }
 
 struct pos_event * pos_event_timer_event_get(struct pos_event_timer * et)
