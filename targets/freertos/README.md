@@ -81,16 +81,16 @@ The port uses native [FreeRTOS Time](https://www.freertos.org/a00021.html):
 
 FreeRTOS has separate `FromISR` kernel APIs, so the port asks the FreeRTOS port
 layer whether it is running in an ISR (`pos_hw_in_isr()` in `os_hw.h`). It uses
-`portCHECK_IF_IN_ISR()` (ESP-IDF v5.1+, RP2040, XCORE.AI), or else
-`xPortIsInsideInterrupt()` (GCC, IAR and Keil Cortex-M ports; ARM_CM0 since
-FreeRTOS V10.6.0). A port with neither, such as the generic RISC-V port, PIC32,
-or the POSIX simulator, fails to build until `POS_FREERTOS_IN_ISR()` is defined
-in `FreeRTOSConfig.h`, for example:
+`portCHECK_IF_IN_ISR()` if the port defines it (ESP-IDF v5.1+, RP2040,
+XCORE.AI), or else `xPortIsInsideInterrupt()` (GCC, IAR and Keil Cortex-M ports;
+ARM_CM0 since FreeRTOS V10.6.0). No POSKI-specific configuration is needed.
+
+A port with neither, such as the generic RISC-V port or the POSIX simulator,
+fails to build until its platform supplies one, typically in `FreeRTOSConfig.h`.
+The simulator config in `config/posix` does:
 
 ```c
-#define POS_FREERTOS_IN_ISR() xPortInIsrContext()       /* ESP-IDF before v5.1 */
-#define POS_FREERTOS_IN_ISR() (uxInterruptNesting != 0) /* PIC32 */
-#define POS_FREERTOS_IN_ISR() 0                         /* POSIX simulator */
+#define portCHECK_IF_IN_ISR() pdFALSE /* no interrupt context */
 ```
 
 ## Port Details

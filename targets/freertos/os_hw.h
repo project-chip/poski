@@ -27,28 +27,25 @@
 /*
  * Return true when called from an ISR context.
  *
- * This asks the FreeRTOS port layer, never the CPU directly.  FreeRTOS has no
- * ISR query that every port implements, so the first one available is used:
+ * This uses the FreeRTOS port layer's own ISR query, never the CPU directly.
+ * FreeRTOS has no query that every port implements, so this takes:
  *
- *   1. POS_FREERTOS_IN_ISR(), if defined (e.g. in FreeRTOSConfig.h) for a port
- *      with neither query below: e.g. `xPortInIsrContext()` on ESP-IDF before
- *      v5.1, `(uxInterruptNesting != 0)` on PIC32, or `0` on the POSIX
- *      simulator, which has no interrupt context.
- *   2. portCHECK_IF_IN_ISR(), defined by ESP-IDF (v5.1+), RP2040 and XCORE.AI.
- *   3. xPortIsInsideInterrupt(), provided by the GCC, IAR and Keil Cortex-M
- *      ports (ARM_CM0 since FreeRTOS V10.6.0).
+ *   - portCHECK_IF_IN_ISR(), if the port defines it (ESP-IDF v5.1+, RP2040,
+ *     XCORE.AI), else
+ *   - xPortIsInsideInterrupt(), which the GCC, IAR and Keil Cortex-M ports
+ *     provide (ARM_CM0 since FreeRTOS V10.6.0).
  *
  * xPortIsInsideInterrupt() is a function rather than a macro in most ports, so
- * it cannot be probed with `#if defined(...)`.  A port that lacks it therefore
- * fails to build here, instead of silently sending ISR calls down task-level
- * kernel paths.
+ * it cannot be probed with `#if defined(...)`.  A port with neither query
+ * therefore fails to build here, instead of silently sending ISR calls down
+ * task-level kernel paths.  Its platform supplies one, typically by defining
+ * portCHECK_IF_IN_ISR() in FreeRTOSConfig.h, as config/posix does for the
+ * POSIX simulator.
  */
 static inline bool pos_hw_in_isr(void)
 {
-#if defined(POS_FREERTOS_IN_ISR)
-    return POS_FREERTOS_IN_ISR() != 0;
-#elif defined(portCHECK_IF_IN_ISR)
-    return portCHECK_IF_IN_ISR() != 0;
+#if defined(portCHECK_IF_IN_ISR)
+    return portCHECK_IF_IN_ISR() != pdFALSE;
 #else
     return xPortIsInsideInterrupt() != pdFALSE;
 #endif

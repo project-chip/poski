@@ -67,8 +67,8 @@ to exclude the API function. */
 #define INCLUDE_xTimerPendingFunctionCall       1
 #define INCLUDE_xQueueGetMutexHolder            1
 
-/* POSKI: the POSIX simulator port has no interrupt context and no ISR query
- * (see pos_hw_in_isr() in targets/freertos/os_hw.h). */
-#define POS_FREERTOS_IN_ISR() 0
+/* The POSIX simulator port has no interrupt context and defines no ISR query,
+ * so supply the port macro that ports such as RP2040 and ESP-IDF define. */
+#define portCHECK_IF_IN_ISR() pdFALSE
 
 #endif /* FREERTOS_CONFIG_H */
