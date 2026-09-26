@@ -77,6 +77,22 @@ The port uses native
 The port uses native [FreeRTOS Time](https://www.freertos.org/a00021.html):
 `xTaskGetTickCountFromISR`.
 
+### ISR context
+
+FreeRTOS has separate `FromISR` kernel APIs, so the port asks the FreeRTOS port
+layer whether it is running in an ISR (`pos_hw_in_isr()` in `os_hw.h`). It uses
+`portCHECK_IF_IN_ISR()` (ESP-IDF v5.1+, RP2040, XCORE.AI), or else
+`xPortIsInsideInterrupt()` (GCC, IAR and Keil Cortex-M ports; ARM_CM0 since
+FreeRTOS V10.6.0). A port with neither, such as the generic RISC-V port, PIC32,
+or the POSIX simulator, fails to build until `POS_FREERTOS_IN_ISR()` is defined
+in `FreeRTOSConfig.h`, for example:
+
+```c
+#define POS_FREERTOS_IN_ISR() xPortInIsrContext()       /* ESP-IDF before v5.1 */
+#define POS_FREERTOS_IN_ISR() (uxInterruptNesting != 0) /* PIC32 */
+#define POS_FREERTOS_IN_ISR() 0                         /* POSIX simulator */
+```
+
 ## Port Details
 
 ### Support Status
@@ -96,7 +112,7 @@ The port uses native [FreeRTOS Time](https://www.freertos.org/a00021.html):
 src/osal/freertos
 ├── chip
 │   └── os_port.h         - Primary port-specific header to hook into public src/include/chip/osal.h
-├── os_hw.h               - HW specific ISR helpers (ARM cortex-M specific)
+├── os_hw.h               - ISR-context detection via the FreeRTOS port layer
 ├── os_mutex.c            - Implementation of chip_os_mutex
 ├── os_queue.c            - Implementation of chip_os_queue
 ├── os_sem.c              - Implementation of chip_os_sem

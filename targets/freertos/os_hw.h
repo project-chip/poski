@@ -21,31 +21,36 @@
 #define _OS_HW_H
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #include "FreeRTOS.h"
 
 /*
  * Return true when called from an ISR context.
  *
- * On ARMv6-M / ARMv7-M / ARMv8-M the IPSR register holds the number of the
- * active exception (0 in thread mode).  Reading it directly works on every
- * M-profile port (including ARM_CM0, which has no xPortIsInsideInterrupt())
- * without a PAL or vendor-CMSIS dependency.  Note that xPortIsInsideInterrupt()
- * is an inline function rather than a macro, so it cannot be probed with
- * `#if defined(...)`.
+ * This asks the FreeRTOS port layer, never the CPU directly.  FreeRTOS has no
+ * ISR query that every port implements, so the first one available is used:
  *
- * Hosted simulation ports (e.g. the FreeRTOS POSIX port) have no interrupt
- * context, so they always report task context.
+ *   1. POS_FREERTOS_IN_ISR(), if defined (e.g. in FreeRTOSConfig.h) for a port
+ *      with neither query below: e.g. `xPortInIsrContext()` on ESP-IDF before
+ *      v5.1, `(uxInterruptNesting != 0)` on PIC32, or `0` on the POSIX
+ *      simulator, which has no interrupt context.
+ *   2. portCHECK_IF_IN_ISR(), defined by ESP-IDF (v5.1+), RP2040 and XCORE.AI.
+ *   3. xPortIsInsideInterrupt(), provided by the GCC, IAR and Keil Cortex-M
+ *      ports (ARM_CM0 since FreeRTOS V10.6.0).
+ *
+ * xPortIsInsideInterrupt() is a function rather than a macro in most ports, so
+ * it cannot be probed with `#if defined(...)`.  A port that lacks it therefore
+ * fails to build here, instead of silently sending ISR calls down task-level
+ * kernel paths.
  */
 static inline bool pos_hw_in_isr(void)
 {
-#if defined(__ARM_ARCH_PROFILE) && (__ARM_ARCH_PROFILE == 'M')
-    uint32_t ipsr;
-    __asm volatile("mrs %0, ipsr" : "=r"(ipsr)::"memory");
-    return ipsr != 0;
+#if defined(POS_FREERTOS_IN_ISR)
+    return POS_FREERTOS_IN_ISR() != 0;
+#elif defined(portCHECK_IF_IN_ISR)
+    return portCHECK_IF_IN_ISR() != 0;
 #else
-    return false;
+    return xPortIsInsideInterrupt() != pdFALSE;
 #endif
 }
 
