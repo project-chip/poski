@@ -71,7 +71,7 @@ pos_error_t pos_timer_stop(struct pos_timer * timer)
 
 pos_error_t pos_timer_inited(struct pos_timer * timer)
 {
-    return (timer != NULL) ? POS_OK : POS_ENOENT;
+    return (timer != NULL && timer->cb != NULL) ? POS_OK : POS_EINVAL;
 }
 
 bool pos_timer_is_active(struct pos_timer * timer)
