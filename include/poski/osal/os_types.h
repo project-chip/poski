@@ -45,10 +45,11 @@ typedef void * (*pos_task_func_t)(void *);
  *
  * Events are owned by the caller and are typically embedded in, or statically
  * allocated next to, the object that handles them; queues only link them.
- * Fields are managed by the OSAL: use `pos_event_init()` and the `pos_event_*`
- * accessors.  `next` must remain the first member, because some backends
- * (e.g. Zephyr `k_queue`) reserve the first word of a queued item for their own
- * list linkage.
+ * Fields are managed by the OSAL: initialize with `POS_EVENT_INITIALIZER()`
+ * (which lists the fields in order) or `pos_event_init()`, and use the
+ * `pos_event_*` accessors.  `next` must remain the first member, because some
+ * backends (e.g. Zephyr `k_queue`) reserve the first word of a queued item for
+ * their own list linkage.
  */
 struct pos_event
 {

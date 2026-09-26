@@ -16,6 +16,8 @@
  */
 
 #include <poski/OsEvent.h>
+#include <poski/OsEventQueue.h>
+#include <poski/OsEventTimer.h>
 #include <poski/OsTime.h>
 #include "test_util.h"
 

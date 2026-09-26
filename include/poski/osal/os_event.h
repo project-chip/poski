@@ -42,6 +42,12 @@
  *   `pos_event_timer_start()`, and `pos_event_timer_stop()` may also be called
  *   from an ISR, and `pos_eventq_get()` may be called from an ISR with
  *   `POS_TIME_NO_WAIT`.
+ *
+ *   Porting: a target defines `struct pos_eventq` and `struct pos_event_timer`
+ *   in its port headers and implements the non-inline functions declared here.
+ *   `struct pos_event`, the inline helpers, and the C++ wrappers
+ *   (<poski/OsEvent.h>, <poski/OsEventQueue.h>, <poski/OsEventTimer.h>) are
+ *   shared by all targets and need no target-specific changes.
  */
 
 #ifndef POSKI_OS_EVENT_H
@@ -57,6 +63,22 @@ extern "C" {
 /* =========================================================================
  * Event API (pos_event)
  * ========================================================================= */
+
+/**
+ * @brief Static initializer for a `struct pos_event`, equivalent to
+ *        `pos_event_init()`.
+ *
+ * A statically allocated event initialized this way is constant-initialized
+ * and needs no run-time setup:
+ *
+ * @code
+ * static struct pos_event s_event = POS_EVENT_INITIALIZER(on_event, &s_ctx);
+ * @endcode
+ *
+ * @param fn  Callback function invoked when the event is run.
+ * @param arg User-defined context argument associated with the event.
+ */
+#define POS_EVENT_INITIALIZER(fn, arg) { NULL, (fn), (arg), false }
 
 /**
  * @brief Initialize an event with a callback function and user argument.

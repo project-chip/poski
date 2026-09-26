@@ -118,6 +118,24 @@ static void test_basic_eventq(void)
     VerifyOrQuit(pos_eventq_inited(&evq) == 0, "eventq: inited should be false after deinit");
 }
 
+/* A statically initialized event needs no pos_event_init() call. */
+static struct event_test_ctx s_static_ctx;
+static struct pos_event s_static_ev = POS_EVENT_INITIALIZER(record_event_cb, &s_static_ctx);
+
+static void test_event_static_init(void)
+{
+    struct pos_eventq evq;
+
+    VerifyOrQuit(!pos_event_is_queued(&s_static_ev), "static event: should not be queued initially");
+    VerifyOrQuit(pos_event_arg_get(&s_static_ev) == &s_static_ctx, "static event: wrong arg");
+
+    VerifyOrQuit(pos_eventq_init(&evq) == POS_OK, "static event: eventq init failed");
+    VerifyOrQuit(pos_eventq_put(&evq, &s_static_ev) == POS_OK, "static event: put failed");
+    VerifyOrQuit(pos_eventq_poll(&evq, POS_TIME_NO_WAIT) == POS_OK, "static event: poll failed");
+    VerifyOrQuit(s_static_ctx.count == 1, "static event: callback not run");
+    VerifyOrQuit(pos_eventq_deinit(&evq) == POS_OK, "static event: eventq deinit failed");
+}
+
 static void timer_event_cb(struct pos_event * ev);
 
 static struct pos_eventq s_blocking_evq;
@@ -385,6 +403,7 @@ static void test_event_timer_invalid(void)
 int main(void)
 {
     test_basic_eventq();
+    test_event_static_init();
     test_eventq_blocking_get();
     test_eventq_multi_consumer();
     test_event_timer();

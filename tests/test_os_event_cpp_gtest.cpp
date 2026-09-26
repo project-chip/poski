@@ -17,6 +17,8 @@
 
 #include <gtest/gtest.h>
 #include <poski/OsEvent.h>
+#include <poski/OsEventQueue.h>
+#include <poski/OsEventTimer.h>
 #include <poski/OsTime.h>
 
 static void gtest_event_cb(struct pos_event * ev)
@@ -109,4 +111,12 @@ TEST(OsEventCpp, ZeroOverhead) {
     EXPECT_EQ(sizeof(poski::OsEventQueue), sizeof(struct pos_eventq));
     EXPECT_EQ(sizeof(poski::OsEventTimer), sizeof(struct pos_event_timer));
     EXPECT_EQ(sizeof(Counter::mTimer), sizeof(struct pos_event_timer));
+}
+
+TEST(OsEventCpp, ConstexprConstruction) {
+    // Compiles only if OsEvent construction is a constant expression, i.e. a
+    // static OsEvent is constant-initialized with no static-init code.
+    static constexpr poski::OsEvent kEvent(gtest_event_cb, nullptr);
+    EXPECT_FALSE(kEvent.IsQueued());
+    EXPECT_EQ(kEvent.ArgGet(), nullptr);
 }
