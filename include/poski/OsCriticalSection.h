@@ -25,6 +25,17 @@ namespace poski {
 /**
  * @brief RAII scope guard that enters a critical section (disabling interrupts)
  *        on construction and restores the saved interrupt state on destruction.
+ *
+ * @code
+ *     {
+ *         poski::OsCriticalSection cs;
+ *         shared_counter++;
+ *     } // interrupts restored here
+ * @endcode
+ *
+ * Guards may be nested.  Keep the guarded scope short and never block
+ * (sleep, or wait on a mutex, semaphore, queue, or event queue) while holding
+ * one.
  */
 class OsCriticalSection {
 public:

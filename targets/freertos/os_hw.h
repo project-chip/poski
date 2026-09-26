@@ -21,21 +21,29 @@
 #define _OS_HW_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "FreeRTOS.h"
 
 /*
- * Return true when called from an ISR context.  Uses FreeRTOS's
- * own ARMv7-M port helper (defined in portmacro.h as a single
- * mrs of IPSR), so this works on every M-class port without a
- * PAL or vendor-CMSIS dependency.
+ * Return true when called from an ISR context.
+ *
+ * On ARMv6-M / ARMv7-M / ARMv8-M the IPSR register holds the number of the
+ * active exception (0 in thread mode).  Reading it directly works on every
+ * M-profile port (including ARM_CM0, which has no xPortIsInsideInterrupt())
+ * without a PAL or vendor-CMSIS dependency.  Note that xPortIsInsideInterrupt()
+ * is an inline function rather than a macro, so it cannot be probed with
+ * `#if defined(...)`.
+ *
+ * Hosted simulation ports (e.g. the FreeRTOS POSIX port) have no interrupt
+ * context, so they always report task context.
  */
 static inline bool pos_hw_in_isr(void)
 {
-#if defined(portVECTACTIVE)
-    return (portVECTACTIVE) != 0;
-#elif defined(xPortIsInsideInterrupt)
-    return xPortIsInsideInterrupt() == pdTRUE;
+#if defined(__ARM_ARCH_PROFILE) && (__ARM_ARCH_PROFILE == 'M')
+    uint32_t ipsr;
+    __asm volatile("mrs %0, ipsr" : "=r"(ipsr)::"memory");
+    return ipsr != 0;
 #else
     return false;
 #endif

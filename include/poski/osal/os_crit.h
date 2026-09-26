@@ -40,8 +40,12 @@ extern "C" {
 /**
  * @brief Opaque saved interrupt state returned by `pos_crit_enter()` and
  *        passed to `pos_crit_exit()`.
+ *
+ * Pointer-sized so it can hold the native saved state of every backend without
+ * truncation (e.g. FreeRTOS `UBaseType_t`, Zephyr `irq_lock()` key, RT-Thread
+ * `rt_base_t`, which is 64 bits wide on LP64 targets).
  */
-typedef uint32_t pos_crit_state_t;
+typedef uintptr_t pos_crit_state_t;
 
 /**
  * @brief Enter a critical section by masking interrupts (or acquiring the
@@ -49,6 +53,10 @@ typedef uint32_t pos_crit_state_t;
  *
  * Calls to `pos_crit_enter()` and `pos_crit_exit()` may be nested; each enter
  * must be paired with a corresponding `pos_crit_exit(state)` in LIFO order.
+ * Critical sections must be kept short and must not block (sleep, or wait on a
+ * mutex, semaphore, queue, or event queue).
+ *
+ * @note Safe to call from both task and ISR contexts on RTOS backends.
  *
  * @return Saved interrupt/critical state token to pass to `pos_crit_exit()`.
  */
@@ -62,12 +70,15 @@ pos_crit_state_t pos_crit_enter(void);
 void pos_crit_exit(pos_crit_state_t state);
 
 /**
- * @brief Return true if currently executing inside a critical section.
+ * @brief Return true if the calling context is currently inside a critical
+ *        section (between `pos_crit_enter()` and its matching `pos_crit_exit()`).
+ *
+ * Intended for assertions such as "must (not) be called with interrupts masked".
  */
 bool pos_crit_is_active(void);
 
 /**
- * @brief Return true if the caller is currently executing in an hardware
+ * @brief Return true if the caller is currently executing in a hardware
  *        Interrupt Service Routine (ISR) context.
  */
 bool pos_crit_in_isr(void);

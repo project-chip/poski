@@ -15,41 +15,43 @@
  *    limitations under the License.
  */
 
+#include <assert.h>
 #include <pthread.h>
-#include <stdatomic.h>
 
 #include <poski/osal/osal.h>
 
-static pthread_once_t s_crit_once = PTHREAD_ONCE_INIT;
-static pthread_mutex_t s_crit_mutex;
-static atomic_int s_crit_nesting = 0;
-
-static void init_crit_mutex(void)
-{
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&s_crit_mutex, &attr);
-    pthread_mutexattr_destroy(&attr);
-}
+/*
+ * Hosted targets have no interrupts to mask, so a critical section is emulated
+ * with a single process-wide lock.  The nesting depth is tracked per thread:
+ * the lock is only taken by the outermost pos_crit_enter() and released by the
+ * matching outermost pos_crit_exit(), and pos_crit_is_active() reports whether
+ * the *calling* thread is inside a critical section.
+ */
+static pthread_mutex_t s_crit_mutex = PTHREAD_MUTEX_INITIALIZER;
+static _Thread_local unsigned s_crit_nesting;
 
 pos_crit_state_t pos_crit_enter(void)
 {
-    pthread_once(&s_crit_once, init_crit_mutex);
-    pthread_mutex_lock(&s_crit_mutex);
-    return (pos_crit_state_t) atomic_fetch_add(&s_crit_nesting, 1);
+    if (s_crit_nesting++ == 0)
+    {
+        pthread_mutex_lock(&s_crit_mutex);
+    }
+    return 0;
 }
 
 void pos_crit_exit(pos_crit_state_t state)
 {
     (void) state;
-    atomic_fetch_sub(&s_crit_nesting, 1);
-    pthread_mutex_unlock(&s_crit_mutex);
+    assert(s_crit_nesting > 0);
+    if (s_crit_nesting > 0 && --s_crit_nesting == 0)
+    {
+        pthread_mutex_unlock(&s_crit_mutex);
+    }
 }
 
 bool pos_crit_is_active(void)
 {
-    return atomic_load(&s_crit_nesting) > 0;
+    return s_crit_nesting > 0;
 }
 
 bool pos_crit_in_isr(void)
