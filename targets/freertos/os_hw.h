@@ -25,19 +25,29 @@
 #include "FreeRTOS.h"
 
 /*
- * Return true when called from an ISR context.  Uses FreeRTOS's
- * own ARMv7-M port helper (defined in portmacro.h as a single
- * mrs of IPSR), so this works on every M-class port without a
- * PAL or vendor-CMSIS dependency.
+ * Return true when called from an ISR context.
+ *
+ * This uses the FreeRTOS port layer's own ISR query, never the CPU directly.
+ * FreeRTOS has no query that every port implements, so this takes:
+ *
+ *   - portCHECK_IF_IN_ISR(), if the port defines it (ESP-IDF v5.1+, RP2040,
+ *     XCORE.AI), else
+ *   - xPortIsInsideInterrupt(), which the GCC, IAR and Keil Cortex-M ports
+ *     provide (ARM_CM0 since FreeRTOS V10.6.0).
+ *
+ * xPortIsInsideInterrupt() is a function rather than a macro in most ports, so
+ * it cannot be probed with `#if defined(...)`.  A port with neither query
+ * therefore fails to build here, instead of silently sending ISR calls down
+ * task-level kernel paths.  Its platform supplies one, typically by defining
+ * portCHECK_IF_IN_ISR() in FreeRTOSConfig.h, as config/posix does for the
+ * POSIX simulator.
  */
 static inline bool pos_hw_in_isr(void)
 {
-#if defined(portVECTACTIVE)
-    return (portVECTACTIVE) != 0;
-#elif defined(xPortIsInsideInterrupt)
-    return xPortIsInsideInterrupt() == pdTRUE;
+#if defined(portCHECK_IF_IN_ISR)
+    return portCHECK_IF_IN_ISR() != pdFALSE;
 #else
-    return false;
+    return xPortIsInsideInterrupt() != pdFALSE;
 #endif
 }
 

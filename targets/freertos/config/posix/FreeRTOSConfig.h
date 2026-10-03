@@ -67,4 +67,8 @@ to exclude the API function. */
 #define INCLUDE_xTimerPendingFunctionCall       1
 #define INCLUDE_xQueueGetMutexHolder            1
 
+/* The POSIX simulator port has no interrupt context and defines no ISR query,
+ * so supply the port macro that ports such as RP2040 and ESP-IDF define. */
+#define portCHECK_IF_IN_ISR() pdFALSE
+
 #endif /* FREERTOS_CONFIG_H */
