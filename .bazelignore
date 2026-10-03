@@ -1,0 +1,4 @@
+# GoogleTest sources downloaded into the tree by `make gtest` (see
+# GTEST_VER in tests/Makefile). They ship their own BUILD files, which would
+# otherwise break wildcard patterns such as `bazel build //...`.
+tests/googletest-1.14.0
