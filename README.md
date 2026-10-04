@@ -35,7 +35,7 @@ POSKI provides abstractions for:
 | [Semaphore](#semaphore)    | `<poski/osal/os_sem.h>`   | `poski::OsSemaphore`   | Counting semaphores                         |
 | [Critical section](#critical-section) | `<poski/osal/os_crit.h>` | `poski::OsCriticalSection` | Interrupt-masking mutual exclusion |
 | [Queue](#queue)            | `<poski/osal/os_queue.h>` | `poski::OsQueue<T, N>` | Fixed-size message queues (copy semantics)  |
-| [Event queue](#event-queue) | `<poski/osal/os_event.h>` | `poski::OsEvent`, `OsEventQueue`, `OsEventTimer` | Allocation-free intrusive event queue |
+| [Event queue](#event-queue) | `<poski/osal/os_event.h>`, `<poski/osal/os_eventq.h>`, `<poski/osal/os_event_timer.h>` | `poski::OsEvent`, `OsEventQueue`, `OsEventTimer` | Allocation-free intrusive events, queues, and timers |
 | [Timer](#timer)            | `<poski/osal/os_timer.h>` | `poski::OsTimer`       | One-shot software timers                    |
 | [Time](#time)              | `<poski/osal/os_time.h>`  | `poski::OsTime`        | System time and tick/millisecond conversion |
 | [Scheduler](#scheduler)    | `<poski/osal/os_sched.h>` | `poski::OsTask`        | Start and query the scheduler               |
@@ -444,7 +444,7 @@ and `Pop()`.
 
 ### Event Queue
 
-`<poski/osal/os_event.h>` · `struct pos_event` / `pos_eventq` / `pos_event_timer` · `<poski/OsEvent.h>`
+`<poski/osal/os_event.h>` · `<poski/osal/os_eventq.h>` · `<poski/osal/os_event_timer.h>` · `poski::OsEvent` / `OsEventQueue` / `OsEventTimer`
 
 Events, event queues, and event timers (modeled on Mynewt `os_event` /
 `os_eventq` / `os_callout`) provide allocation-free deferred work. An event
@@ -551,7 +551,9 @@ implementations:
 │   ├── OsTimer.h             - C++ wrapper for pos_timer
 │   └── osal
 │       ├── os_crit.h         - Critical section / interrupt masking C API
-│       ├── os_event.h        - Event, event queue, and event timer C API
+│       ├── os_event.h        - Event (pos_event) C API
+│       ├── os_event_timer.h  - Event timer (pos_event_timer) C API
+│       ├── os_eventq.h       - Event queue (pos_eventq) C API
 │       ├── os_mutex.h        - Mutex C API
 │       ├── os_panic.h        - Fatal error (panic) C API
 │       ├── os_queue.h        - Message queue C API
@@ -618,7 +620,8 @@ targets/posix
 │   ├── os_time.h             - Time and timer types (pos_time_t, POS_TIME_*, struct pos_timer)
 │   └── os_types.h            - Task, mutex, semaphore, and queue types; task priorities
 ├── os_crit.c                 - Implementation of pos_crit
-├── os_event.c                - Implementation of pos_eventq and pos_event_timer
+├── os_event_timer.c          - Implementation of pos_event_timer
+├── os_eventq.c               - Implementation of pos_eventq
 ├── os_mutex.c                - Implementation of pos_mutex
 ├── os_panic.c                - Implementation of pos_panic
 ├── os_queue.cc               - Implementation of pos_queue (C++, using RingPthread)

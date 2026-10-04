@@ -34,5 +34,7 @@
 #include "poski/osal/os_panic.h"
 #include "poski/osal/os_crit.h"
 #include "poski/osal/os_event.h"
+#include "poski/osal/os_eventq.h"
+#include "poski/osal/os_event_timer.h"
 
 #endif /* POSKI_OSAL_H */

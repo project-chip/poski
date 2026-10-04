@@ -20,7 +20,7 @@
  */
 
 /*
- * FreeRTOS event queue and event timers.
+ * FreeRTOS event queue.
  *
  * The event queue is an intrusive FIFO guarded by a critical section, so
  * events can be posted and removed from tasks and ISRs.  A binary semaphore
@@ -29,15 +29,11 @@
  * wakeup and the semaphore count never has to match the number of queued
  * events.
  *
- * Event timers are serviced by their queue, like Mynewt callouts: pending
- * timers are kept on the queue's `timers` list, sorted by expiry.  Every queue
- * operation first moves the events of expired timers onto the FIFO (soonest
- * first, so they stay ordered relative to events posted afterwards), and a
- * blocking get sleeps no longer than the earliest pending expiry.  Event timers
- * therefore use no FreeRTOS software timers (no timer service task, timer
- * command queue, or heap), and start/stop/restart cannot race with an expiry
- * that is already in flight.  The POSIX target uses the same algorithm, where
- * it is exercised by the host unit tests.
+ * Event timers bound to a queue (os_event_timer.c) are kept on the queue's
+ * `timers` list, sorted by expiry.  Every queue operation first moves the
+ * events of expired timers onto the FIFO (soonest first, so they stay ordered
+ * relative to events posted afterwards), and a blocking get sleeps no longer
+ * than the earliest pending expiry.
  *
  * With configSUPPORT_STATIC_ALLOCATION == 1 the wakeup semaphore is allocated
  * inside struct pos_eventq, so no heap is used at all.
@@ -45,7 +41,8 @@
 
 #include <string.h>
 
-#include <poski/osal/osal.h>
+#include <poski/osal/os_event_timer.h>
+#include <poski/osal/os_eventq.h>
 #include "os_hw.h"
 
 /* Return true if tick time `now` is at or after `when` (wrap-safe). */
@@ -152,41 +149,6 @@ static void event_unlink_locked(struct pos_eventq * evq, struct pos_event * ev)
     }
 }
 
-static void timer_insert_locked(struct pos_eventq * evq, struct pos_event_timer * et)
-{
-    struct pos_event_timer ** link = &evq->timers;
-
-    /* Keep the list sorted by expiry; timers with equal expiry keep start order. */
-    while (*link != NULL && time_reached(et->expiry, (*link)->expiry))
-    {
-        link = &(*link)->next;
-    }
-    et->next  = *link;
-    *link     = et;
-    et->armed = true;
-}
-
-static void timer_unlink_locked(struct pos_eventq * evq, struct pos_event_timer * et)
-{
-    struct pos_event_timer ** link;
-
-    if (!et->armed)
-    {
-        return;
-    }
-
-    for (link = &evq->timers; *link != NULL; link = &(*link)->next)
-    {
-        if (*link == et)
-        {
-            *link = et->next;
-            break;
-        }
-    }
-    et->next  = NULL;
-    et->armed = false;
-}
-
 /* Post the events of all timers that have expired by `now`, soonest first. */
 static void timers_expire_locked(struct pos_eventq * evq, TickType_t now)
 {
@@ -274,7 +236,11 @@ pos_error_t pos_eventq_deinit(struct pos_eventq * evq)
     }
     while (evq->timers != NULL)
     {
-        timer_unlink_locked(evq, evq->timers);
+        struct pos_event_timer * et = evq->timers;
+
+        evq->timers = et->next;
+        et->next    = NULL;
+        et->armed   = false;
     }
     eventq_crit_exit(state);
 
@@ -423,141 +389,4 @@ bool pos_eventq_is_empty(struct pos_eventq * evq)
     eventq_unlock(state);
 
     return empty;
-}
-
-/* =========================================================================
- * Event Timer
- * ========================================================================= */
-
-static bool event_timer_usable(const struct pos_event_timer * et)
-{
-    return (et != NULL) && (et->evq != NULL) && (et->evq->wakeup != NULL);
-}
-
-pos_error_t pos_event_timer_init(struct pos_event_timer * et, struct pos_eventq * evq, pos_event_fn * fn, void * arg)
-{
-    if (et == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    /* Leave a rejected timer zeroed, i.e. safely "not initialized". */
-    memset(et, 0, sizeof(*et));
-    if (evq == NULL || fn == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    et->evq = evq;
-    pos_event_init(&et->ev, fn, arg);
-
-    return POS_OK;
-}
-
-pos_error_t pos_event_timer_deinit(struct pos_event_timer * et)
-{
-    if (et == NULL)
-    {
-        return POS_INVALID_PARAM;
-    }
-
-    if (event_timer_usable(et))
-    {
-        (void) pos_event_timer_stop(et);
-    }
-    et->evq = NULL;
-
-    return POS_OK;
-}
-
-pos_error_t pos_event_timer_start(struct pos_event_timer * et, pos_time_t ticks)
-{
-    struct pos_eventq * evq;
-    UBaseType_t state;
-    bool wake;
-
-    if (!event_timer_usable(et) || ticks > POS_EVENT_TIMER_MAX_TICKS)
-    {
-        return POS_INVALID_PARAM;
-    }
-    evq = et->evq;
-
-    state = eventq_lock(evq);
-    timer_unlink_locked(evq, et);
-    event_unlink_locked(evq, &et->ev);
-    et->expiry = pos_time_get() + ticks;
-    timer_insert_locked(evq, et);
-    /* A new earliest expiry must shorten the wait of a blocked consumer. */
-    wake = (evq->timers == et) && (evq->waiters != 0);
-    eventq_unlock(state);
-
-    if (wake)
-    {
-        eventq_wake(evq);
-    }
-
-    return POS_OK;
-}
-
-pos_error_t pos_event_timer_stop(struct pos_event_timer * et)
-{
-    struct pos_eventq * evq;
-    UBaseType_t state;
-
-    if (!event_timer_usable(et))
-    {
-        return POS_INVALID_PARAM;
-    }
-    evq = et->evq;
-
-    state = eventq_lock(evq);
-    timer_unlink_locked(evq, et);
-    event_unlink_locked(evq, &et->ev);
-    eventq_unlock(state);
-
-    return POS_OK;
-}
-
-pos_error_t pos_event_timer_inited(struct pos_event_timer * et)
-{
-    return (et != NULL && et->evq != NULL) ? POS_OK : POS_EINVAL;
-}
-
-bool pos_event_timer_is_active(struct pos_event_timer * et)
-{
-    UBaseType_t state;
-    bool active;
-
-    if (!event_timer_usable(et))
-    {
-        return false;
-    }
-
-    state  = eventq_lock(et->evq);
-    active = et->armed;
-    eventq_unlock(state);
-
-    return active;
-}
-
-pos_time_t pos_event_timer_get_ticks(struct pos_event_timer * et)
-{
-    UBaseType_t state;
-    pos_time_t expiry;
-
-    if (!event_timer_usable(et))
-    {
-        return 0;
-    }
-
-    state  = eventq_lock(et->evq);
-    expiry = et->expiry;
-    eventq_unlock(state);
-
-    return expiry;
-}
-
-struct pos_event * pos_event_timer_event_get(struct pos_event_timer * et)
-{
-    return (et != NULL) ? &et->ev : NULL;
 }
