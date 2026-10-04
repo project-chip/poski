@@ -78,6 +78,44 @@ struct pos_task
     void * arg;
 };
 
+/*
+ * Kernel objects owned by the OSAL event queue are statically allocated inside
+ * `struct pos_eventq` whenever the application enables static allocation, so
+ * event queues and event timers never touch the FreeRTOS heap.
+ */
+#if defined(configSUPPORT_STATIC_ALLOCATION) && (configSUPPORT_STATIC_ALLOCATION == 1)
+#define POS_FREERTOS_STATIC_ALLOCATION 1
+#else
+#define POS_FREERTOS_STATIC_ALLOCATION 0
+#endif
+
+/*
+ * Event queue: an intrusive FIFO of events plus the list of event timers bound
+ * to the queue that are still pending, sorted by expiry (like Mynewt callouts).
+ * The binary semaphore only wakes blocked consumers (`waiters` counts them, so
+ * producers signal only when needed); the lists are the source of truth.
+ */
+struct pos_eventq
+{
+    struct pos_event * head;
+    struct pos_event * tail;
+    struct pos_event_timer * timers;
+    UBaseType_t waiters;
+    SemaphoreHandle_t wakeup;
+#if POS_FREERTOS_STATIC_ALLOCATION
+    StaticSemaphore_t wakeup_buf;
+#endif
+};
+
+struct pos_event_timer
+{
+    struct pos_event ev;
+    struct pos_eventq * evq;
+    struct pos_event_timer * next;
+    TickType_t expiry;
+    bool armed;
+};
+
 static inline bool pos_os_started(void)
 {
     return xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED;
