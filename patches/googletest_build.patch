@@ -1,7 +1,0 @@
---- a/BUILD.bazel
-+++ b/BUILD.bazel
-@@ -1,2 +1,4 @@
-+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-+
- # Copyright 2017 Google Inc.
- # All Rights Reserved.

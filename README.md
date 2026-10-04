@@ -562,7 +562,6 @@ implementations:
 │       ├── os_timer.h        - Software timer C API
 │       ├── os_types.h        - Common types and error codes (pos_error_t); includes os_port.h
 │       └── osal.h            - Umbrella C header
-├── patches/                  - GoogleTest patches applied by Bazel
 ├── targets
 │   ├── freertos/             - FreeRTOS port (config/posix/ holds the Bazel compile-check config)
 │   ├── posix/                - POSIX port (Linux and macOS)
