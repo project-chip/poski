@@ -253,8 +253,55 @@ cc_test(
 )
 
 cc_test(
+    name = "test_os_event",
+    srcs = ["tests/test_os_event.c"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
     name = "test_os_crit_cpp_gtest",
     srcs = ["tests/test_os_crit_cpp_gtest.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_event_gtest",
+    srcs = [
+        "tests/test_gtest_wrapper.cpp",
+        "tests/test_os_event.c",
+    ],
+    copts = [
+        "-Dmain=test_os_event_main",
+        "-DTEST_NAME=Event",
+        "-DTEST_MAIN=test_os_event_main",
+        "-DWRAP_C_MAIN",
+    ],
+    deps = [
+        ":osal",
+        ":test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_os_event_cpp",
+    srcs = ["tests/test_os_event_cpp.cpp"],
+    deps = [
+        ":osal",
+        ":test_util",
+    ],
+)
+
+cc_test(
+    name = "test_os_event_cpp_gtest",
+    srcs = ["tests/test_os_event_cpp_gtest.cpp"],
     deps = [
         ":osal",
         ":test_util",
@@ -271,12 +318,14 @@ test_suite(
         ":test_os_sem",
         ":test_os_timer",
         ":test_os_crit",
+        ":test_os_event",
         ":test_os_ring",
         ":test_os_task_cpp",
         ":test_os_queue_cpp",
         ":test_os_mutex_cpp",
         ":test_os_semaphore_cpp",
         ":test_os_timer_cpp",
+        ":test_os_event_cpp",
     ],
 )
 
@@ -288,6 +337,7 @@ test_suite(
         ":test_os_mutex_gtest",
         ":test_os_sem_gtest",
         ":test_os_timer_gtest",
+        ":test_os_event_gtest",
         ":test_os_ring_gtest",
         ":test_os_task_cpp_gtest",
         ":test_os_queue_cpp_gtest",
@@ -295,6 +345,7 @@ test_suite(
         ":test_os_semaphore_cpp_gtest",
         ":test_os_timer_cpp_gtest",
         ":test_os_crit_cpp_gtest",
+        ":test_os_event_cpp_gtest",
         ":test_os_ring_cpp_gtest",
     ],
 )

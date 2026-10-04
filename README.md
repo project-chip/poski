@@ -35,6 +35,7 @@ POSKI provides abstractions for:
 | [Semaphore](#semaphore)    | `<poski/osal/os_sem.h>`   | `poski::OsSemaphore`   | Counting semaphores                         |
 | [Critical section](#critical-section) | `<poski/osal/os_crit.h>` | `poski::OsCriticalSection` | Interrupt-masking mutual exclusion |
 | [Queue](#queue)            | `<poski/osal/os_queue.h>` | `poski::OsQueue<T, N>` | Fixed-size message queues (copy semantics)  |
+| [Event queue](#event-queue) | `<poski/osal/os_event.h>` | `poski::OsEvent`, `OsEventQueue`, `OsEventTimer` | Allocation-free intrusive event queue |
 | [Timer](#timer)            | `<poski/osal/os_timer.h>` | `poski::OsTimer`       | One-shot software timers                    |
 | [Time](#time)              | `<poski/osal/os_time.h>`  | `poski::OsTime`        | System time and tick/millisecond conversion |
 | [Scheduler](#scheduler)    | `<poski/osal/os_sched.h>` | `poski::OsTask`        | Start and query the scheduler               |
@@ -441,6 +442,26 @@ each put (for example, to wake an external event loop). `pos_queue_put()` and
 `pos_queue_get()` are ISR-safe. `OsQueue<T, N>` provides type-safe `Push()`
 and `Pop()`.
 
+### Event Queue
+
+`<poski/osal/os_event.h>` · `struct pos_event` / `pos_eventq` / `pos_event_timer` · `<poski/OsEvent.h>`
+
+Events, event queues, and event timers (modeled on Mynewt `os_event` /
+`os_eventq` / `os_callout`) provide allocation-free deferred work. An event
+(`struct pos_event`) is a caller-owned `{callback, argument}` record that
+queues link intrusively, so posting never copies or allocates, and posting an
+already-pending event is a no-op. Events can be statically initialized with
+`POS_EVENT_INITIALIZER()`. A consumer task drains the queue
+(`struct pos_eventq`) with `pos_eventq_get()` / `pos_eventq_run()`. An event
+timer (`struct pos_event_timer`) posts its event to a queue when it expires, so
+the callback runs in the consumer task rather than in an ISR or timer context.
+
+The C++ classes `poski::OsEvent`, `OsEventQueue`, and `OsEventTimer`
+(`<poski/OsEvent.h>`, `<poski/OsEventQueue.h>`, `<poski/OsEventTimer.h>`) are
+pure wrappers of the C API that hold the C structs by value with no extra
+storage, so a port implements only the C API. `OsEventIn` / `OsEventTimerIn`
+dispatch directly to an owner's member function.
+
 ### Timer
 
 `<poski/osal/os_timer.h>` · `struct pos_timer` · `poski::OsTimer`
@@ -518,6 +539,9 @@ implementations:
 ├── Makefile                  - Convenience wrapper around tests/Makefile
 ├── include/poski
 │   ├── OsCriticalSection.h   - C++ RAII guard for pos_crit / pos_atomic
+│   ├── OsEvent.h             - C++ wrapper for pos_event and member dispatch
+│   ├── OsEventQueue.h        - C++ wrapper for pos_eventq
+│   ├── OsEventTimer.h        - C++ wrapper for pos_event_timer
 │   ├── OsMutex.h             - C++ wrapper for pos_mutex
 │   ├── OsQueue.h             - C++ template wrapper for pos_queue
 │   ├── OsRing.h              - Portable ring buffer class
@@ -527,6 +551,7 @@ implementations:
 │   ├── OsTimer.h             - C++ wrapper for pos_timer
 │   └── osal
 │       ├── os_crit.h         - Critical section / interrupt masking C API
+│       ├── os_event.h        - Event, event queue, and event timer C API
 │       ├── os_mutex.h        - Mutex C API
 │       ├── os_panic.h        - Fatal error (panic) C API
 │       ├── os_queue.h        - Message queue C API
@@ -593,6 +618,7 @@ targets/posix
 │   ├── os_time.h             - Time and timer types (pos_time_t, POS_TIME_*, struct pos_timer)
 │   └── os_types.h            - Task, mutex, semaphore, and queue types; task priorities
 ├── os_crit.c                 - Implementation of pos_crit
+├── os_event.c                - Implementation of pos_eventq and pos_event_timer
 ├── os_mutex.c                - Implementation of pos_mutex
 ├── os_panic.c                - Implementation of pos_panic
 ├── os_queue.cc               - Implementation of pos_queue (C++, using RingPthread)

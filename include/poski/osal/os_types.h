@@ -31,9 +31,33 @@
 extern "C" {
 #endif
 
+struct pos_event;
+struct pos_eventq;
+struct pos_event_timer;
+
 typedef void pos_timer_fn(void * arg);
 typedef void pos_signal_fn(void * arg);
+typedef void pos_event_fn(struct pos_event * ev);
 typedef void * (*pos_task_func_t)(void *);
+
+/**
+ * Intrusive event record (see <poski/osal/os_event.h>).
+ *
+ * Events are owned by the caller and are typically embedded in, or statically
+ * allocated next to, the object that handles them; queues only link them.
+ * Fields are managed by the OSAL: initialize with `POS_EVENT_INITIALIZER()`
+ * (which lists the fields in order) or `pos_event_init()`, and use the
+ * `pos_event_*` accessors.  `next` must remain the first member, because some
+ * backends (e.g. Zephyr `k_queue`) reserve the first word of a queued item for
+ * their own list linkage.
+ */
+struct pos_event
+{
+    struct pos_event * next;
+    pos_event_fn * fn;
+    void * arg;
+    bool queued;
+};
 
 enum pos_error
 {
