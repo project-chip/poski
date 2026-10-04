@@ -56,4 +56,29 @@ struct pos_sem
     struct k_sem sem;
 };
 
+/*
+ * Event queue: a k_queue of intrusive events.  `struct pos_event` keeps its
+ * `next` pointer first, which k_queue uses as its link, so posting never
+ * allocates.
+ */
+struct pos_eventq
+{
+    struct k_queue queue;
+    bool inited;
+};
+
+/*
+ * Event timer: a k_timer whose expiry posts the embedded event.  `armed` and
+ * `expiry` let the expiry function ignore an expiry that raced with a stop or
+ * restart.
+ */
+struct pos_event_timer
+{
+    struct k_timer timer;
+    struct pos_event ev;
+    struct pos_eventq * evq;
+    pos_time_t expiry;
+    bool armed;
+};
+
 #endif // POSKI_OS_ZEPHYR_TYPES_H
