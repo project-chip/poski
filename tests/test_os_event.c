@@ -21,6 +21,9 @@
 
 #include <string.h>
 
+#include <poski/osal/os_event.h>
+#include <poski/osal/os_event_timer.h>
+#include <poski/osal/os_eventq.h>
 #include <poski/osal/osal.h>
 
 #include "test_util.h"

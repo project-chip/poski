@@ -19,8 +19,8 @@
 /**
  * @file
  *   C++ wrapper for the OSAL event timer (`struct pos_event_timer`,
- *   <poski/osal/os_event.h>).  Like `OsEvent`, it is a pure, zero-overhead
- *   wrapper of the C API (see <poski/OsEvent.h>).
+ *   <poski/osal/os_event_timer.h>).  Like `OsEvent`, it is a pure,
+ *   zero-overhead wrapper of the C API (see <poski/OsEvent.h>).
  *
  *   `OsEventTimerIn<Owner, &Owner::Handler>` calls a member function of its
  *   owner when it expires, in the task that services the event queue:
@@ -45,7 +45,7 @@
 
 #include "poski/OsEvent.h"
 #include "poski/OsEventQueue.h"
-#include "poski/osal/os_event.h"
+#include "poski/osal/os_event_timer.h"
 #include <assert.h>
 
 namespace poski {

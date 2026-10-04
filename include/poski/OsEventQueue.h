@@ -19,7 +19,7 @@
 /**
  * @file
  *   C++ wrapper for the OSAL event queue (`struct pos_eventq`,
- *   <poski/osal/os_event.h>).  Like `OsEvent`, it is a pure, zero-overhead
+ *   <poski/osal/os_eventq.h>).  Like `OsEvent`, it is a pure, zero-overhead
  *   wrapper of the C API (see <poski/OsEvent.h>).
  */
 
@@ -27,7 +27,7 @@
 #define POSKI_CPP_OS_EVENT_QUEUE_H
 
 #include "poski/OsEvent.h"
-#include "poski/osal/os_event.h"
+#include "poski/osal/os_eventq.h"
 #include <assert.h>
 
 namespace poski {
