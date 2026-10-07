@@ -24,8 +24,10 @@
 extern "C" {
 #endif
 
+// IWYU pragma: begin_exports
 #include <stdio.h>
 #include <stdlib.h>
+// IWYU pragma: end_exports
 
 #define PASS (0)
 #define FAIL (-1)

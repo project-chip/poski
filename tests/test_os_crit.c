@@ -24,6 +24,8 @@
   bool pos_crit_in_isr(void);
 */
 
+#include <stdint.h>
+
 #include <poski/osal/osal.h>
 
 #include "test_util.h"

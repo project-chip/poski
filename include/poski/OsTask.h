@@ -19,8 +19,10 @@
 #ifndef POSKI_CPP_OS_TASK_H
 #define POSKI_CPP_OS_TASK_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_task.h"
 #include "poski/osal/os_sched.h"
+// IWYU pragma: end_exports
 #include <assert.h>
 
 namespace poski {

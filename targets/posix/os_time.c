@@ -17,6 +17,7 @@
  *    limitations under the License.
  */
 
+#include <stdint.h>
 #include <time.h>
 
 #include <poski/osal/osal.h>
@@ -56,7 +57,7 @@ pos_time_t pos_time_get(void)
     {
         return 0;
     }
-    ticks = now.tv_sec * POS_TICKS_PER_SEC_F + now.tv_nsec / POS_TICKS_PER_NANOSEC_F;
+    ticks = (pos_time_t) ((uint64_t) (now.tv_sec * POS_TICKS_PER_SEC_F + now.tv_nsec / POS_TICKS_PER_NANOSEC_F));
     return ticks;
 }
 

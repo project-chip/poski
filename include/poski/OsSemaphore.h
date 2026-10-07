@@ -19,7 +19,9 @@
 #ifndef POSKI_CPP_OS_SEMAPHORE_H
 #define POSKI_CPP_OS_SEMAPHORE_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_sem.h"
+// IWYU pragma: end_exports
 #include <assert.h>
 #include <stdint.h>
 #include <atomic>

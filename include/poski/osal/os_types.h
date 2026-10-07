@@ -79,7 +79,9 @@ enum pos_error
 typedef enum pos_error pos_error_t;
 
 /* Include OS-specific definitions */
-#include "poski/osal/os_port.h"
+// IWYU pragma: begin_exports
+#include <poski/osal/os_port.h>
+// IWYU pragma: end_exports
 
 #ifdef __cplusplus
 }

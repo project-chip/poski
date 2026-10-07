@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <poski/OsSemaphore.h>
 #include <poski/OsTask.h>
+#include <stddef.h>
 
 #define TEST_ITERATIONS 5
 

@@ -23,6 +23,7 @@
 #ifndef POSKI_OSAL_H
 #define POSKI_OSAL_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_types.h"
 #include "poski/osal/os_mutex.h"
 #include "poski/osal/os_sem.h"
@@ -34,5 +35,6 @@
 #include "poski/osal/os_panic.h"
 #include "poski/osal/os_crit.h"
 #include "poski/osal/os_event.h"
+// IWYU pragma: end_exports
 
-#endif /* POSKI_OSAL_H */
+#endif // POSKI_OSAL_H

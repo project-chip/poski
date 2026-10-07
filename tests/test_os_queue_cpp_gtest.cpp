@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <poski/OsQueue.h>
 #include <poski/OsTask.h>
+#include <stddef.h>
 
 #define TEST_ITERATIONS 5
 #define TEST_QUEUE_SIZE 8

@@ -24,7 +24,9 @@
 #include <stdint.h>
 #include <string.h>
 
+// IWYU pragma: begin_exports
 #include "os_time.h"
 #include "os_types.h"
+// IWYU pragma: end_exports
 
 #endif /* POSKI_OS_ZEPHYR_PORT_H */

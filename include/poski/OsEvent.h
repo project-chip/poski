@@ -59,7 +59,9 @@
 #ifndef POSKI_CPP_OS_EVENT_H
 #define POSKI_CPP_OS_EVENT_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_event.h"
+// IWYU pragma: end_exports
 #include <type_traits>
 
 namespace poski {

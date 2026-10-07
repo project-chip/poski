@@ -26,8 +26,10 @@
 #ifndef POSKI_CPP_OS_EVENT_QUEUE_H
 #define POSKI_CPP_OS_EVENT_QUEUE_H
 
+// IWYU pragma: begin_exports
 #include "poski/OsEvent.h"
 #include "poski/osal/os_event.h"
+// IWYU pragma: end_exports
 #include <assert.h>
 
 namespace poski {

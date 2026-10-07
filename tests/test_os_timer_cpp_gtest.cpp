@@ -20,7 +20,6 @@
 #include <poski/OsTimer.h>
 #include <poski/OsTime.h>
 #include <poski/OsTask.h>
-#include <stdio.h>
 
 static volatile int s_timer_fired_count = 0;
 static pos_time_t s_timer_start_time;
