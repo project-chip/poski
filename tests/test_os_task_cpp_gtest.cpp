@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <poski/OsTask.h>
 #include <atomic>
+#include <stddef.h>
 
 static std::atomic<int> s_task_run_count{0};
 

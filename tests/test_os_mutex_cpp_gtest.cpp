@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <poski/OsMutex.h>
 #include <poski/OsTask.h>
+#include <stdint.h>
 #include <string.h>
 
 #define TEST_ITERATIONS 10

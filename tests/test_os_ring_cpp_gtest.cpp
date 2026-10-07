@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 #include <poski/OsRing.h>
+#include <stdint.h>
 
 TEST(OsRingCpp, BasicPushPop) {
     poski::OsRing ring(sizeof(uint32_t), 4);

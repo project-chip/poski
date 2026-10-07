@@ -19,7 +19,9 @@
 #ifndef POSKI_CPP_OS_TIMER_H
 #define POSKI_CPP_OS_TIMER_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_timer.h"
+// IWYU pragma: end_exports
 #include <assert.h>
 
 namespace poski {

@@ -19,7 +19,9 @@
 #ifndef POSKI_CPP_OS_MUTEX_H
 #define POSKI_CPP_OS_MUTEX_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_mutex.h"
+// IWYU pragma: end_exports
 #include <assert.h>
 #include <stdint.h>
 

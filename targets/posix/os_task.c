@@ -17,8 +17,13 @@
  *    limitations under the License.
  */
 
-#include <limits.h>
 #include <errno.h>
+#include <limits.h>
+#include <pthread.h>
+#include <sched.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <time.h>
 
 #include <poski/osal/osal.h>
 #include "os_utils.h"
@@ -64,8 +69,9 @@ pos_error_t pos_task_init(struct pos_task * t, const char * name, pos_task_func_
     ret = pthread_attr_setschedpolicy(&t->attr, SCHED_RR);
     SuccessOrExit(ret);
 
-    stack_size = (stack_size < PTHREAD_STACK_MIN) ? PTHREAD_STACK_MIN : stack_size;
-    ret        = pthread_attr_setstacksize(&t->attr, stack_size);
+    size_t min_stack    = (size_t) PTHREAD_STACK_MIN * 4;
+    size_t actual_stack = (stack_size < min_stack) ? min_stack : (size_t) stack_size;
+    ret                 = pthread_attr_setstacksize(&t->attr, actual_stack);
     SuccessOrExit(ret);
 
     t->param.sched_priority = prio;
@@ -158,8 +164,6 @@ void pos_sched_start(void)
         pos_task_yield();
     }
 #endif // __APPLE__
-
-    assert(true);
 }
 
 #ifdef __cplusplus

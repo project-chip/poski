@@ -53,8 +53,10 @@
 #ifndef POSKI_OS_EVENT_H
 #define POSKI_OS_EVENT_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_time.h"
 #include "poski/osal/os_types.h"
+// IWYU pragma: end_exports
 
 #ifdef __cplusplus
 extern "C" {

@@ -18,7 +18,9 @@
 #ifndef POSKI_CPP_OS_CRITICAL_SECTION_H
 #define POSKI_CPP_OS_CRITICAL_SECTION_H
 
+// IWYU pragma: begin_exports
 #include "poski/osal/os_crit.h"
+// IWYU pragma: end_exports
 
 namespace poski {
 
